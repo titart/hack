@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { View, Pressable, Linking, Platform } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Check } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Check, ChevronRight } from "lucide-react-native";
 
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import MapTournee from "@/components/map-tournee";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { useTournee } from "@/contexts/tournee-context";
 
 type Step = "checklist" | "collecting" | "done";
 
@@ -45,10 +47,15 @@ function Checkbox({
 }
 
 export default function TourneeScreen() {
+  const router = useRouter();
+  const { results } = useTournee();
   const [step, setStep] = useState<Step>("checklist");
   const [check1, setCheck1] = useState(false);
   const [check2, setCheck2] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const allDone =
+    Object.keys(results).length === ADRESSES_TOURNEE.length;
+  const currentStep = allDone ? "done" : step;
 
   const handleCheck1 = () => {
     const next = !check1;
@@ -62,16 +69,7 @@ export default function TourneeScreen() {
     if (check1 && next) setStep("collecting");
   };
 
-  const handleCollectDone = () => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex >= ADRESSES_TOURNEE.length) {
-      setStep("done");
-    } else {
-      setCurrentIndex(nextIndex);
-    }
-  };
-
-  if (step === "checklist") {
+  if (currentStep === "checklist") {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 justify-center p-6 gap-6">
@@ -95,51 +93,14 @@ export default function TourneeScreen() {
     );
   }
 
-  const currentAddress =
-    step === "collecting" ? ADRESSES_TOURNEE[currentIndex] : null;
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       <View style={{ height: "50%" }}>
-        <MapTournee
-          adresses={ADRESSES_TOURNEE}
-          activeNumero={currentAddress?.numero}
-        />
+        <MapTournee adresses={ADRESSES_TOURNEE} results={results} />
       </View>
 
-      <View className="flex-1 p-6 justify-center">
-        {step === "collecting" && currentAddress && (
-          <View className="gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Adresse {currentAddress.numero} / {ADRESSES_TOURNEE.length}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Pressable
-                  onPress={() => {
-                    const { latitude, longitude, adresse } = currentAddress;
-                    const url = Platform.select({
-                      ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(adresse)}`,
-                      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&destination_place_id=${encodeURIComponent(adresse)}`,
-                    });
-                    Linking.openURL(url);
-                  }}
-                >
-                  <Text className="text-lg text-primary underline">
-                    {currentAddress.adresse}
-                  </Text>
-                </Pressable>
-              </CardContent>
-            </Card>
-            <Button onPress={handleCollectDone} size="lg">
-              <Text>Collecte terminée</Text>
-            </Button>
-          </View>
-        )}
-
-        {step === "done" && (
+      {currentStep === "done" ? (
+        <View className="flex-1 p-6 justify-center">
           <Card>
             <CardHeader>
               <CardTitle className="text-center">
@@ -152,8 +113,52 @@ export default function TourneeScreen() {
               </Text>
             </CardContent>
           </Card>
-        )}
-      </View>
+        </View>
+      ) : (
+        <ScrollView className="flex-1" contentContainerClassName="p-4 gap-2">
+          {ADRESSES_TOURNEE.map((item) => {
+            const result = results[item.numero];
+            const bgClass = result === "success"
+              ? "bg-green-50 border-green-500"
+              : result === "fail"
+                ? "bg-red-50 border-red-500"
+                : "bg-card border-border";
+
+            return (
+              <Pressable
+                key={item.numero}
+                onPress={() =>
+                  router.push(`/tournee-detail/${item.numero}`)
+                }
+                className={`flex-row items-center justify-between rounded-lg border p-4 ${bgClass}`}
+              >
+                <View className="flex-row items-center gap-3 flex-1">
+                  <View
+                    className={`h-8 w-8 items-center justify-center rounded-full ${
+                      result === "success"
+                        ? "bg-green-500"
+                        : result === "fail"
+                          ? "bg-red-500"
+                          : "bg-primary"
+                    }`}
+                  >
+                    <Text className="text-white font-bold text-sm">
+                      {item.numero}
+                    </Text>
+                  </View>
+                  <View className="flex-1">
+                    <Text className="font-medium">{item.adresse}</Text>
+                    <Text variant="muted" className="text-sm">
+                      {item.colis.length} colis
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={20} className="text-muted-foreground" />
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

@@ -7,14 +7,23 @@ export interface AdresseTournee {
   adresse: string;
   latitude: number;
   longitude: number;
+  colis: { name: string }[];
 }
 
 interface MapTourneeProps {
   adresses: AdresseTournee[];
   activeNumero?: number;
+  results?: Record<number, "success" | "fail">;
 }
 
-export default function MapTournee({ adresses, activeNumero }: MapTourneeProps) {
+const MARKER_COLORS: Record<string, string> = {
+  success: "#22c55e",
+  fail: "#ef4444",
+  active: "#ec4899",
+  default: "#3b82f6",
+};
+
+export default function MapTournee({ adresses, activeNumero, results }: MapTourneeProps) {
   return (
     <MapView
       style={styles.map}
@@ -27,6 +36,13 @@ export default function MapTournee({ adresses, activeNumero }: MapTourneeProps) 
     >
       {adresses.map((item) => {
         const isActive = activeNumero != null && item.numero === activeNumero;
+        const result = results?.[item.numero];
+        const bgColor = isActive
+          ? MARKER_COLORS.active
+          : result
+            ? MARKER_COLORS[result]
+            : MARKER_COLORS.default;
+
         return (
           <Marker
             key={item.numero}
@@ -37,12 +53,7 @@ export default function MapTournee({ adresses, activeNumero }: MapTourneeProps) 
             title={`${item.numero}. ${item.adresse}`}
           >
             <View style={styles.markerContainer}>
-              <View
-                style={[
-                  styles.marker,
-                  isActive && { backgroundColor: "#ec4899" },
-                ]}
-              >
+              <View style={[styles.marker, { backgroundColor: bgColor }]}>
                 <Text style={styles.markerText}>{item.numero}</Text>
               </View>
             </View>
