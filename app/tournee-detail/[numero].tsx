@@ -1,6 +1,15 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check, ChevronRight, MapPin, Package } from "lucide-react-native";
+import { useRef, useMemo, useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
+import Animated, {
+  Easing,
+  runOnJS,
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +17,89 @@ import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
+/* ── Confetti constants ───────────────────────────────────── */
+const CONFETTI_COLORS = [
+  "#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1",
+  "#96CEB4", "#FFEAA7", "#DDA0DD", "#FF69B4",
+  "#FF4500", "#7B68EE", "#00CED1", "#FFA07A",
+];
+const NUM_CONFETTI = 30;
+
+interface PieceConfig {
+  angle: number;
+  distance: number;
+  color: string;
+  size: number;
+  rotSpeed: number;
+  isRound: boolean;
+}
+
+function ConfettiPiece({
+  piece,
+  progress,
+}: {
+  piece: PieceConfig;
+  progress: SharedValue<number>;
+}) {
+  const tx = Math.cos(piece.angle) * piece.distance;
+  const ty = Math.sin(piece.angle) * piece.distance;
+
+  const style = useAnimatedStyle(() => {
+    const p = progress.value;
+    return {
+      transform: [
+        { translateX: tx * p },
+        { translateY: ty * p + p * p * 40 },
+        { rotate: `${piece.rotSpeed * p * 360}deg` },
+        { scale: p < 0.15 ? p / 0.15 : Math.max(0, 1 - (p - 0.35) / 0.65) },
+      ],
+      opacity: p < 0.1 ? p / 0.1 : Math.max(0, 1 - (p - 0.25) / 0.75),
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          width: piece.size,
+          height: piece.size,
+          borderRadius: piece.isRound ? piece.size / 2 : 2,
+          backgroundColor: piece.color,
+        },
+        style,
+      ]}
+    />
+  );
+}
+/* ─────────────────────────────────────────────────────────── */
+
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
   const { colisPhotos, setResult } = useTournee();
+  const confettiProgress = useSharedValue(0);
+  const containerRef = useRef<View>(null);
+  const validateBtnRef = useRef<View>(null);
+  const [confettiOrigin, setConfettiOrigin] = useState({ x: 0, y: 0 });
+
+  const confettiPieces = useMemo<PieceConfig[]>(
+    () =>
+      Array.from({ length: NUM_CONFETTI }, (_, i) => ({
+        // Angles répartis dans le demi-cercle supérieur (-150° à -30°)
+        // pour que les confettis partent vers le haut
+        angle:
+          -Math.PI * 0.85 +
+          (i / NUM_CONFETTI) * Math.PI * 0.7 +
+          (Math.random() - 0.5) * 0.4,
+        distance: 60 + Math.random() * 160,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        size: 5 + Math.random() * 8,
+        rotSpeed: 1 + Math.random() * 4,
+        isRound: Math.random() > 0.5,
+      })),
+    [],
+  );
 
   const numInt = Number(numero);
   const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
@@ -42,9 +130,32 @@ export default function TourneeDetailScreen() {
     router.back();
   }
 
+  function handleValidate() {
+    // Mesurer la position du bouton par rapport au conteneur
+    validateBtnRef.current?.measureInWindow((bx, by, bw, bh) => {
+      containerRef.current?.measureInWindow((cx, cy) => {
+        setConfettiOrigin({
+          x: bx - cx + bw / 2,
+          y: by - cy + bh / 2,
+        });
+        confettiProgress.value = 0;
+        confettiProgress.value = withTiming(
+          1,
+          { duration: 900, easing: Easing.out(Easing.cubic) },
+          (finished) => {
+            if (finished) {
+              runOnJS(handleResult)("success");
+            }
+          },
+        );
+      });
+    });
+  }
+
   return (
+    <View ref={containerRef} className="flex-1 bg-background">
     <ScrollView
-      className="flex-1 bg-background"
+      className="flex-1"
       contentContainerClassName="p-6 gap-6"
     >
       {/* Bloc adresse */}
@@ -117,20 +228,37 @@ export default function TourneeDetailScreen() {
             Échec
           </Text>
         </Button>
-        <Button
-          size="lg"
-          className={`flex-1 ${
-            // allColisValidated
-            // ?
-            "bg-green-600 active:bg-green-700"
-            // : "bg-green-600/50"
-          }`}
-          // disabled={!allColisValidated}
-          onPress={() => handleResult("success")}
-        >
-          <Text className="text-white font-semibold">Valider</Text>
-        </Button>
+        <View ref={validateBtnRef} className="flex-1">
+          <Button
+            size="lg"
+            className={`${
+              // allColisValidated
+              // ?
+              "bg-green-600 active:bg-green-700"
+              // : "bg-green-600/50"
+            }`}
+            // disabled={!allColisValidated}
+            onPress={handleValidate}
+          >
+            <Text className="text-white font-semibold">Valider</Text>
+          </Button>
+        </View>
       </View>
     </ScrollView>
+
+    {/* Confetti overlay — positionné exactement sur le bouton Valider */}
+    <View
+      pointerEvents="none"
+      style={{
+        position: "absolute",
+        top: confettiOrigin.y,
+        left: confettiOrigin.x,
+      }}
+    >
+      {confettiPieces.map((piece, i) => (
+        <ConfettiPiece key={i} piece={piece} progress={confettiProgress} />
+      ))}
+    </View>
+    </View>
   );
 }
