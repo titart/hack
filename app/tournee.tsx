@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, Linking, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Check } from "lucide-react-native";
 
@@ -117,7 +117,20 @@ export default function TourneeScreen() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Text className="text-lg">{currentAddress.adresse}</Text>
+                <Pressable
+                  onPress={() => {
+                    const { latitude, longitude, adresse } = currentAddress;
+                    const url = Platform.select({
+                      ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(adresse)}`,
+                      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&destination_place_id=${encodeURIComponent(adresse)}`,
+                    });
+                    Linking.openURL(url);
+                  }}
+                >
+                  <Text className="text-lg text-primary underline">
+                    {currentAddress.adresse}
+                  </Text>
+                </Pressable>
               </CardContent>
             </Card>
             <Button onPress={handleCollectDone} size="lg">
