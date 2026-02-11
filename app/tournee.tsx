@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { ChevronRight, Navigation, Package, Truck } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,13 +30,26 @@ function extractPostalCode(adresse: string): string {
 export default function TourneeScreen() {
   const router = useRouter();
   const { results } = useTournee();
+  const [orderedAdresses, setOrderedAdresses] = useState(() => [...ADRESSES_TOURNEE]);
   const [activeNumero, setActiveNumero] = useState(ADRESSES_TOURNEE[0]?.numero);
 
-  const totalColis = ADRESSES_TOURNEE.reduce(
+  const handleSwap8and9 = useCallback(() => {
+    setOrderedAdresses((prev) => {
+      const next = [...prev];
+      const idx8 = next.findIndex((a) => a.numero === 8);
+      const idx9 = next.findIndex((a) => a.numero === 9);
+      if (idx8 !== -1 && idx9 !== -1) {
+        [next[idx8], next[idx9]] = [next[idx9], next[idx8]];
+      }
+      return next;
+    });
+  }, []);
+
+  const totalColis = orderedAdresses.reduce(
     (sum, a) => sum + a.colis.length,
     0,
   );
-  const nbPoints = ADRESSES_TOURNEE.length;
+  const nbPoints = orderedAdresses.length;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
@@ -83,16 +96,17 @@ export default function TourneeScreen() {
       {/* Map */}
       <View style={{ height: "35%" }}>
         <MapTournee
-          adresses={ADRESSES_TOURNEE}
+          adresses={orderedAdresses}
           activeNumero={activeNumero}
           results={results}
           onMarkerPress={setActiveNumero}
+          onSwapPress={handleSwap8and9}
         />
       </View>
 
       {/* Points list */}
       <ScrollView className="flex-1" contentContainerClassName="p-4 gap-3">
-        {ADRESSES_TOURNEE.map((item) => {
+        {orderedAdresses.map((item) => {
           const postalCode = extractPostalCode(item.adresse);
 
           return (

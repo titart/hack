@@ -1,5 +1,6 @@
+import { ArrowUpDown } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import MapView, { Marker, AnimatedRegion, Polyline } from "react-native-maps";
 import { Text } from "@/components/ui/text";
 
@@ -34,6 +35,7 @@ interface MapTourneeProps {
   activeNumero?: number;
   results?: Record<number, "success" | "fail">;
   onMarkerPress?: (numero: number) => void;
+  onSwapPress?: () => void;
 }
 
 interface LatLng {
@@ -105,7 +107,7 @@ function distanceBetween(a: LatLng, b: LatLng): number {
   return Math.sqrt(dlat * dlat + dlng * dlng);
 }
 
-export default function MapTournee({ adresses, activeNumero, results, onMarkerPress }: MapTourneeProps) {
+export default function MapTournee({ adresses, activeNumero, results, onMarkerPress, onSwapPress }: MapTourneeProps) {
   const firstAdresse = adresses[0];
   const mapRef = useRef<MapView>(null);
   const prevNumeroRef = useRef<number | undefined>(activeNumero);
@@ -228,77 +230,111 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
   }, [activeNumero, adresses, truckCoord, animateAlongRoute, segments]);
 
   return (
-    <MapView
-      ref={mapRef}
-      style={styles.map}
-      onMapReady={handleMapReady}
-    >
-      {/* Colored segments */}
-      {segments.map((seg) => {
-        let color = SEGMENT_COLORS.upcoming;
-        if (activeNumero != null) {
-          if (seg.toNumero < activeNumero) {
-            color = SEGMENT_COLORS.done;
-          } else if (seg.toNumero === activeNumero) {
-            color = isAnimating ? SEGMENT_COLORS.active : SEGMENT_COLORS.done;
-          }
-        }
-
-        return (
-          <Polyline
-            key={`${seg.fromNumero}-${seg.toNumero}`}
-            coordinates={seg.coords}
-            strokeColor={color}
-            strokeWidth={4}
-            lineDashPattern={[6, 4]}
-          />
-        );
-      })}
-
-      {adresses.map((item) => {
-        const isActive = activeNumero != null && item.numero === activeNumero;
-        const result = results?.[item.numero];
-        const bgColor = isActive
-          ? MARKER_COLORS.active
-          : result
-            ? MARKER_COLORS[result]
-            : MARKER_COLORS.default;
-
-        return (
-          <Marker
-            key={item.numero}
-            coordinate={{
-              latitude: item.latitude,
-              longitude: item.longitude,
-            }}
-            title={`${item.numero}. ${item.adresse}`}
-            onPress={() => onMarkerPress?.(item.numero)}
-          >
-            <View style={styles.markerContainer}>
-              <View style={[styles.marker, { backgroundColor: bgColor }]}>
-                <Text style={styles.markerText}>{item.numero}</Text>
-              </View>
-            </View>
-          </Marker>
-        );
-      })}
-
-      <Marker.Animated
-        coordinate={truckCoord}
-        anchor={{ x: 0.5, y: 0.5 }}
-        style={{ zIndex: 999 }}
+    <View style={styles.mapWrapper}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        onMapReady={handleMapReady}
       >
-        <View style={styles.truckContainer}>
-          <Text style={styles.truckEmoji}>🚛</Text>
-        </View>
-      </Marker.Animated>
-    </MapView>
+        {/* Colored segments */}
+        {segments.map((seg) => {
+          let color = SEGMENT_COLORS.upcoming;
+          if (activeNumero != null) {
+            if (seg.toNumero < activeNumero) {
+              color = SEGMENT_COLORS.done;
+            } else if (seg.toNumero === activeNumero) {
+              color = isAnimating ? SEGMENT_COLORS.active : SEGMENT_COLORS.done;
+            }
+          }
+
+          return (
+            <Polyline
+              key={`${seg.fromNumero}-${seg.toNumero}`}
+              coordinates={seg.coords}
+              strokeColor={color}
+              strokeWidth={4}
+              lineDashPattern={[6, 4]}
+            />
+          );
+        })}
+
+        {adresses.map((item) => {
+          const isActive = activeNumero != null && item.numero === activeNumero;
+          const result = results?.[item.numero];
+          const bgColor = isActive
+            ? MARKER_COLORS.active
+            : result
+              ? MARKER_COLORS[result]
+              : MARKER_COLORS.default;
+
+          return (
+            <Marker
+              key={item.numero}
+              coordinate={{
+                latitude: item.latitude,
+                longitude: item.longitude,
+              }}
+              title={`${item.numero}. ${item.adresse}`}
+              onPress={() => onMarkerPress?.(item.numero)}
+            >
+              <View style={styles.markerContainer}>
+                <View style={[styles.marker, { backgroundColor: bgColor }]}>
+                  <Text style={styles.markerText}>{item.numero}</Text>
+                </View>
+              </View>
+            </Marker>
+          );
+        })}
+
+        <Marker.Animated
+          coordinate={truckCoord}
+          anchor={{ x: 0.5, y: 0.5 }}
+          style={{ zIndex: 999 }}
+        >
+          <View style={styles.truckContainer}>
+            <Text style={styles.truckEmoji}>🚛</Text>
+          </View>
+        </Marker.Animated>
+      </MapView>
+
+      {onSwapPress && (
+        <Pressable style={styles.swapButton} onPress={onSwapPress}>
+          <ArrowUpDown size={18} color="#374151" />
+          <Text style={styles.swapButtonText}>8 ↔ 9</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mapWrapper: {
+    flex: 1,
+  },
   map: {
     flex: 1,
+  },
+  swapButton: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  swapButtonText: {
+    color: "#374151",
+    fontWeight: "bold",
+    fontSize: 14,
   },
   markerContainer: {
     alignItems: "center",
