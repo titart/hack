@@ -11,9 +11,10 @@ export interface AdresseTournee {
 
 interface MapTourneeProps {
   adresses: AdresseTournee[];
+  activeNumero?: number;
 }
 
-export default function MapTournee({ adresses }: MapTourneeProps) {
+export default function MapTournee({ adresses, activeNumero }: MapTourneeProps) {
   return (
     <MapView
       style={styles.map}
@@ -24,22 +25,30 @@ export default function MapTournee({ adresses }: MapTourneeProps) {
         longitudeDelta: 0.025,
       }}
     >
-      {adresses.map((item) => (
-        <Marker
-          key={item.numero}
-          coordinate={{
-            latitude: item.latitude,
-            longitude: item.longitude,
-          }}
-          title={`${item.numero}. ${item.adresse}`}
-        >
-          <View style={styles.markerContainer}>
-            <View style={styles.marker}>
-              <Text style={styles.markerText}>{item.numero}</Text>
+      {adresses.map((item) => {
+        const isActive = activeNumero != null && item.numero === activeNumero;
+        return (
+          <Marker
+            key={item.numero}
+            coordinate={{
+              latitude: item.latitude,
+              longitude: item.longitude,
+            }}
+            title={`${item.numero}. ${item.adresse}`}
+          >
+            <View style={styles.markerContainer}>
+              <View
+                style={[
+                  styles.marker,
+                  isActive && { backgroundColor: "#ec4899" },
+                ]}
+              >
+                <Text style={styles.markerText}>{item.numero}</Text>
+              </View>
             </View>
-          </View>
-        </Marker>
-      ))}
+          </Marker>
+        );
+      })}
     </MapView>
   );
 }

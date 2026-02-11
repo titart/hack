@@ -101,7 +101,10 @@ export default function TourneeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       <View style={{ height: "50%" }}>
-        <MapTournee adresses={ADRESSES_TOURNEE} />
+        <MapTournee
+          adresses={ADRESSES_TOURNEE}
+          activeNumero={currentAddress?.numero}
+        />
       </View>
 
       <View className="flex-1 p-6 justify-center">
