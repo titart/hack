@@ -1,105 +1,24 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Check, ChevronRight, MapPin, Package } from "lucide-react-native";
-import { useRef, useMemo, useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  ChevronRight,
+  FileText,
+  HelpCircle,
+  Info,
+  MapPin,
+  Phone,
+  PlusCircle,
+  User,
+} from "lucide-react-native";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
-import Animated, {
-  Easing,
-  runOnJS,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
-/* ── Confetti constants ───────────────────────────────────── */
-const CONFETTI_COLORS = [
-  "#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1",
-  "#96CEB4", "#FFEAA7", "#DDA0DD", "#FF69B4",
-  "#FF4500", "#7B68EE", "#00CED1", "#FFA07A",
-];
-const NUM_CONFETTI = 30;
-
-interface PieceConfig {
-  angle: number;
-  distance: number;
-  color: string;
-  size: number;
-  rotSpeed: number;
-  isRound: boolean;
-}
-
-function ConfettiPiece({
-  piece,
-  progress,
-}: {
-  piece: PieceConfig;
-  progress: SharedValue<number>;
-}) {
-  const tx = Math.cos(piece.angle) * piece.distance;
-  const ty = Math.sin(piece.angle) * piece.distance;
-
-  const style = useAnimatedStyle(() => {
-    const p = progress.value;
-    return {
-      transform: [
-        { translateX: tx * p },
-        { translateY: ty * p + p * p * 40 },
-        { rotate: `${piece.rotSpeed * p * 360}deg` },
-        { scale: p < 0.15 ? p / 0.15 : Math.max(0, 1 - (p - 0.35) / 0.65) },
-      ],
-      opacity: p < 0.1 ? p / 0.1 : Math.max(0, 1 - (p - 0.25) / 0.75),
-    };
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          position: "absolute",
-          width: piece.size,
-          height: piece.size,
-          borderRadius: piece.isRound ? piece.size / 2 : 2,
-          backgroundColor: piece.color,
-        },
-        style,
-      ]}
-    />
-  );
-}
-/* ─────────────────────────────────────────────────────────── */
-
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
-  const { colisPhotos, setResult } = useTournee();
-  const confettiProgress = useSharedValue(0);
-  const containerRef = useRef<View>(null);
-  const validateBtnRef = useRef<View>(null);
-  const [confettiOrigin, setConfettiOrigin] = useState({ x: 0, y: 0 });
-
-  const confettiPieces = useMemo<PieceConfig[]>(
-    () =>
-      Array.from({ length: NUM_CONFETTI }, (_, i) => ({
-        // Angles répartis dans le demi-cercle supérieur (-150° à -30°)
-        // pour que les confettis partent vers le haut
-        angle:
-          -Math.PI * 0.85 +
-          (i / NUM_CONFETTI) * Math.PI * 0.7 +
-          (Math.random() - 0.5) * 0.4,
-        distance: 60 + Math.random() * 160,
-        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-        size: 5 + Math.random() * 8,
-        rotSpeed: 1 + Math.random() * 4,
-        isRound: Math.random() > 0.5,
-      })),
-    [],
-  );
+  const { colisPhotos } = useTournee();
 
   const numInt = Number(numero);
   const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
@@ -112,153 +31,208 @@ export default function TourneeDetailScreen() {
     );
   }
 
-  const allColisValidated = adresse.colis.every(
-    (c) => colisPhotos[c.name] != null,
-  );
+  const headerTitle = `Point ${adresse.numero} : ${adresse.creneauHoraire ?? ""} - ${adresse.ville ?? ""}`;
 
   function openMaps() {
     const { latitude, longitude, adresse: addr } = adresse!;
     const url = Platform.select({
       ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(addr)}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&destination_place_id=${encodeURIComponent(addr)}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
     });
     Linking.openURL(url);
   }
 
-  function handleResult(result: "success" | "fail") {
-    setResult(numInt, result);
-    router.back();
-  }
-
-  function handleValidate() {
-    // Mesurer la position du bouton par rapport au conteneur
-    validateBtnRef.current?.measureInWindow((bx, by, bw, bh) => {
-      containerRef.current?.measureInWindow((cx, cy) => {
-        setConfettiOrigin({
-          x: bx - cx + bw / 2,
-          y: by - cy + bh / 2,
-        });
-        confettiProgress.value = 0;
-        confettiProgress.value = withTiming(
-          1,
-          { duration: 900, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) {
-              runOnJS(handleResult)("success");
-            }
-          },
-        );
-      });
-    });
+  function callPhone() {
+    if (adresse?.phone) {
+      Linking.openURL(`tel:${adresse.phone.replace(/\s/g, "")}`);
+    }
   }
 
   return (
-    <View ref={containerRef} className="flex-1 bg-background">
-    <ScrollView
-      className="flex-1"
-      contentContainerClassName="p-6 gap-6"
-    >
-      {/* Bloc adresse */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Adresse {adresse.numero}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Pressable onPress={openMaps} className="flex-row items-center gap-2">
-            <MapPin size={18} color="#3b82f6" />
-            <Text className="text-lg text-primary underline flex-1">
+    <View className="flex-1 bg-gray-50">
+      <Stack.Screen
+        options={{
+          title: headerTitle,
+          headerStyle: { backgroundColor: "#3a3a3a" },
+          headerTintColor: "#ffffff",
+          headerTitleStyle: { fontSize: 16, fontWeight: "600" },
+          headerBackTitle: "",
+          headerRight: () => (
+            <Pressable className="p-1">
+              <HelpCircle size={24} color="#ffffff" />
+            </Pressable>
+          ),
+        }}
+      />
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerClassName="px-5 pt-5 gap-6"
+      >
+        {/* ── Info client ─────────────────────────────────────── */}
+        <View
+          className="bg-white rounded-xl p-5 gap-4"
+          style={{
+            shadowColor: "#000",
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 2,
+          }}
+        >
+          <Text className="text-lg font-bold text-gray-900">Info client</Text>
+
+          {/* Nom client */}
+          <View className="flex-row items-center gap-3">
+            <User size={18} color="#6b7280" />
+            <Text className="text-base text-gray-900">
+              {adresse.clientName ?? "Client"}
+            </Text>
+          </View>
+
+          {/* Adresse */}
+          <Pressable onPress={openMaps} className="flex-row items-start gap-3">
+            <MapPin size={18} color="#6b7280" />
+            <Text className="text-base text-gray-900 underline flex-1">
               {adresse.adresse}
             </Text>
           </Pressable>
-        </CardContent>
-      </Card>
 
-      {/* Liste des colis */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Colis ({adresse.colis.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="gap-3">
-          {adresse.colis.map((colis) => {
-            const hasPhoto = colisPhotos[colis.name] != null;
-            return (
-              <Pressable
-                key={colis.name}
-                onPress={() =>
-                  router.push(
-                    `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
-                  )
-                }
-                className={`flex-row items-center justify-between rounded-lg border p-4 ${
-                  hasPhoto
-                    ? "bg-green-50 border-green-500"
-                    : "bg-card border-border"
-                }`}
-              >
-                <View className="flex-row items-center gap-3 flex-1">
-                  <View
-                    className={`h-8 w-8 items-center justify-center rounded-full ${
-                      hasPhoto ? "bg-green-500" : "bg-muted"
-                    }`}
-                  >
-                    {hasPhoto ? (
-                      <Check size={18} color="#ffffff" />
-                    ) : (
-                      <Package size={16} color="#6b7280" />
-                    )}
-                  </View>
-                  <Text className="font-medium flex-1">{colis.name}</Text>
-                </View>
-                <ChevronRight size={20} className="text-muted-foreground" />
-              </Pressable>
-            );
-          })}
-        </CardContent>
-      </Card>
+          {/* Téléphone */}
+          {adresse.phone && (
+            <Pressable
+              onPress={callPhone}
+              className="flex-row items-center gap-3"
+            >
+              <Phone size={18} color="#6b7280" />
+              <Text className="text-base text-gray-900">{adresse.phone}</Text>
+            </Pressable>
+          )}
 
-      {/* Bloc actions */}
-      <View className="flex-row gap-4">
-        <Button
-          variant="destructive"
-          size="lg"
-          className="flex-1"
-          onPress={() => handleResult("fail")}
-        >
-          <Text className="text-destructive-foreground font-semibold">
-            Échec
-          </Text>
-        </Button>
-        <View ref={validateBtnRef} className="flex-1">
-          <Button
-            size="lg"
-            className={`${
-              // allColisValidated
-              // ?
-              "bg-green-600 active:bg-green-700"
-              // : "bg-green-600/50"
-            }`}
-            // disabled={!allColisValidated}
-            onPress={handleValidate}
-          >
-            <Text className="text-white font-semibold">Valider</Text>
-          </Button>
+          {/* Notes */}
+          {adresse.notes && (
+            <View className="flex-row items-start gap-3">
+              <View className="pt-0.5">
+                <Info size={18} color="#6b7280" />
+              </View>
+              <Text className="text-sm text-gray-500 flex-1 leading-5">
+                {adresse.notes}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
-    </ScrollView>
 
-    {/* Confetti overlay — positionné exactement sur le bouton Valider */}
-    <View
-      pointerEvents="none"
-      style={{
-        position: "absolute",
-        top: confettiOrigin.y,
-        left: confettiOrigin.x,
-      }}
-    >
-      {confettiPieces.map((piece, i) => (
-        <ConfettiPiece key={i} piece={piece} progress={confettiProgress} />
-      ))}
-    </View>
+        {/* ── Mission : Collecte ──────────────────────────────── */}
+        <View className="gap-4">
+          {/* Titre mission */}
+          <View className="flex-row items-baseline gap-2 flex-wrap">
+            <Text className="text-lg font-bold text-gray-900">
+              Mission : {adresse.missionType ?? "Collecte"}
+            </Text>
+            {(adresse.missionRef || adresse.missionPartenaire) && (
+              <Text className="text-sm text-gray-400">
+                ({adresse.missionRef}
+                {adresse.missionPartenaire
+                  ? ` - ${adresse.missionPartenaire}`
+                  : ""}
+                )
+              </Text>
+            )}
+          </View>
+
+          {/* Liste des appareils */}
+          <View className="gap-3">
+            {adresse.colis.map((colis) => {
+              const isCollected = colisPhotos[colis.name] != null;
+              const subtitle = [colis.marque, colis.modele, colis.poids]
+                .filter(Boolean)
+                .join(", ");
+
+              return (
+                <Pressable
+                  key={colis.name}
+                  onPress={() =>
+                    router.push(
+                      `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
+                    )
+                  }
+                  className="flex-row items-center bg-white rounded-xl border border-gray-200 px-4 py-3"
+                  style={{
+                    shadowColor: "#000",
+                    shadowOpacity: 0.03,
+                    shadowRadius: 2,
+                    shadowOffset: { width: 0, height: 1 },
+                    elevation: 1,
+                  }}
+                >
+                  {/* Gauche : nom appareil + infos */}
+                  <View className="flex-1 gap-0.5">
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-base font-medium text-gray-900">
+                        {colis.type ?? colis.name}
+                      </Text>
+                      <FileText size={14} color="#9ca3af" />
+                    </View>
+                    {subtitle ? (
+                      <Text className="text-sm text-gray-400">{subtitle}</Text>
+                    ) : null}
+                  </View>
+
+                  {/* Droite : statut + catégorie + chevron */}
+                  <View className="flex-row items-center gap-2">
+                    <View className="items-end gap-0.5">
+                      <View
+                        className={`px-3 py-1 rounded ${
+                          isCollected ? "bg-green-100" : "bg-red-100"
+                        }`}
+                      >
+                        <Text
+                          className={`text-sm font-bold ${
+                            isCollected ? "text-green-800" : "text-red-900"
+                          }`}
+                        >
+                          {isCollected ? "Collecté" : "Non collecté"}
+                        </Text>
+                      </View>
+                      {colis.categorie && (
+                        <Text className="text-xs text-red-400">
+                          {colis.categorie}
+                        </Text>
+                      )}
+                    </View>
+                    <ChevronRight size={20} color="#d1d5db" />
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Ajouter un appareil */}
+          <Pressable className="flex-row items-center justify-center gap-2 py-2">
+            <PlusCircle size={20} color="#6b7280" />
+            <Text className="text-base text-gray-600 underline">
+              Ajouter un appareil
+            </Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+
+      {/* ── Bouton Démarrer (fixé en bas) ─────────────────────── */}
+      <View
+        className="bg-white border-t border-gray-200 px-6 pb-8 pt-4"
+        style={{
+          shadowColor: "#000",
+          shadowOpacity: 0.05,
+          shadowRadius: 6,
+          shadowOffset: { width: 0, height: -2 },
+          elevation: 4,
+        }}
+      >
+        <Pressable className="border border-gray-300 rounded-full py-3.5 items-center">
+          <Text className="text-base font-medium text-gray-700">Démarrer</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

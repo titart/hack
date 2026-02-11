@@ -3,12 +3,30 @@ import { StyleSheet, View } from "react-native";
 import MapView, { Marker, AnimatedRegion, Polyline } from "react-native-maps";
 import { Text } from "@/components/ui/text";
 
+export interface ColisItem {
+  name: string;
+  type?: string;
+  marque?: string;
+  modele?: string;
+  poids?: string;
+  statut?: "collecte" | "non_collecte";
+  categorie?: string;
+}
+
 export interface AdresseTournee {
   numero: number;
   adresse: string;
   latitude: number;
   longitude: number;
-  colis: { name: string }[];
+  colis: ColisItem[];
+  clientName?: string;
+  phone?: string;
+  notes?: string;
+  creneauHoraire?: string;
+  ville?: string;
+  missionType?: string;
+  missionRef?: string;
+  missionPartenaire?: string;
 }
 
 interface MapTourneeProps {
