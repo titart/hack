@@ -1,98 +1,88 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, ScrollView } from "react-native";
+import { Link } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView className="flex-1 bg-background">
+      <ScrollView className="flex-1" contentContainerClassName="p-6 gap-6">
+        <View className="gap-2">
+          <Text variant="h1">Bienvenue</Text>
+          <Text variant="muted" className="text-center">
+            Votre application est prête à être développée.
+          </Text>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <Separator />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Commencer</CardTitle>
+            <CardDescription>
+              Explorez les différentes sections de l'application.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Text>
+              Naviguez entre les onglets pour découvrir les fonctionnalités.
+              L'onglet Explorer contient une liste d'éléments avec navigation
+              vers des pages de détail.
+            </Text>
+          </CardContent>
+          <CardFooter className="gap-3">
+            <Link href="/explore" asChild>
+              <Button variant="default" className="flex-1">
+                <Text>Explorer</Text>
+              </Button>
+            </Link>
+            <Link href="/modal" asChild>
+              <Button variant="outline" className="flex-1">
+                <Text>Ouvrir Modal</Text>
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Stack technique</CardTitle>
+            <CardDescription>
+              Les technologies utilisées dans ce projet.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="gap-3">
+            {[
+              { name: "Expo Router", desc: "Routing basé sur les fichiers" },
+              { name: "NativeWind", desc: "Tailwind CSS pour React Native" },
+              {
+                name: "React Native Reusables",
+                desc: "Composants shadcn/ui",
+              },
+              { name: "Lucide Icons", desc: "Icônes modernes et légères" },
+            ].map((item) => (
+              <View
+                key={item.name}
+                className="flex-row items-center justify-between rounded-lg border border-border p-3"
+              >
+                <Text className="font-medium">{item.name}</Text>
+                <Text variant="muted">{item.desc}</Text>
+              </View>
+            ))}
+          </CardContent>
+        </Card>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

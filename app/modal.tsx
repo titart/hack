@@ -1,29 +1,41 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { View } from "react-native";
+import { Link } from "expo-router";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 
 export default function ModalScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
-      </Link>
-    </ThemedView>
+    <View className="flex-1 items-center justify-center bg-background p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="items-center">
+          <CardTitle>Modal</CardTitle>
+          <CardDescription>
+            Ceci est un exemple de page modale.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Text className="text-center">
+            Les modales s'affichent par-dessus le contenu principal et peuvent
+            être fermées en glissant vers le bas.
+          </Text>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Link href="/" dismissTo asChild>
+            <Button variant="outline">
+              <Text>Retour à l'accueil</Text>
+            </Button>
+          </Link>
+        </CardFooter>
+      </Card>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-});
