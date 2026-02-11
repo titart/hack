@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
-import { Camera, Compass, Home, User } from "lucide-react-native";
+
+import { Camera, Compass, Home, MapPin, User } from "lucide-react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
@@ -44,9 +45,14 @@ export default function TabLayout() {
         name="camera"
         options={{
           title: "Photos",
-          tabBarIcon: ({ color, size }) => (
-            <Camera size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Camera size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "Carte",
+          tabBarIcon: ({ color, size }) => <MapPin size={size} color={color} />,
         }}
       />
       <Tabs.Screen
