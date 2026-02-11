@@ -25,6 +25,12 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        <Link href="/tournee" asChild>
+          <Button variant="default" size="lg" className="w-full">
+            <Text>Démarre ma tournée</Text>
+          </Button>
+        </Link>
+
         <Separator />
 
         <Card>

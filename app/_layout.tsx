@@ -28,6 +28,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="tournee"
+          options={{
+            title: "Ma tournée",
+            headerBackTitle: "Retour",
+          }}
+        />
+        <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
