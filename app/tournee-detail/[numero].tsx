@@ -18,7 +18,7 @@ import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
-  const { colisPhotos } = useTournee();
+  const { colisPhotos, colisRefusals } = useTournee();
 
   const numInt = Number(numero);
   const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
@@ -145,9 +145,27 @@ export default function TourneeDetailScreen() {
           <View className="gap-3">
             {adresse.colis.map((colis) => {
               const isCollected = colisPhotos[colis.name] != null;
+              const refusalReason = colisRefusals[colis.name] ?? null;
               const subtitle = [colis.marque, colis.modele, colis.poids]
                 .filter(Boolean)
                 .join(", ");
+
+              // Déterminer le statut visuel
+              const statusLabel = isCollected
+                ? "Collecté"
+                : refusalReason
+                  ? "Non collecté"
+                  : "Non collecté";
+              const statusBg = isCollected
+                ? "bg-green-100"
+                : refusalReason
+                  ? "bg-red-100"
+                  : "bg-red-100";
+              const statusText = isCollected
+                ? "text-green-800"
+                : refusalReason
+                  ? "text-red-900"
+                  : "text-red-900";
 
               return (
                 <Pressable
@@ -157,7 +175,7 @@ export default function TourneeDetailScreen() {
                       `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
                     )
                   }
-                  className="flex-row items-center bg-white rounded-xl border border-gray-200 px-4 py-3"
+                  className="bg-white rounded-xl border border-gray-200 px-4 py-3"
                   style={{
                     shadowColor: "#000",
                     shadowOpacity: 0.03,
@@ -166,43 +184,50 @@ export default function TourneeDetailScreen() {
                     elevation: 1,
                   }}
                 >
-                  {/* Gauche : nom appareil + infos */}
-                  <View className="flex-1 gap-0.5">
-                    <View className="flex-row items-center gap-2">
-                      <Text className="text-base font-medium text-gray-900">
-                        {colis.type ?? colis.name}
-                      </Text>
-                      <FileText size={14} color="#9ca3af" />
+                  <View className="flex-row items-center">
+                    {/* Gauche : nom appareil + infos */}
+                    <View className="flex-1 gap-0.5">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-base font-medium text-gray-900">
+                          {colis.type ?? colis.name}
+                        </Text>
+                        <FileText size={14} color="#9ca3af" />
+                      </View>
+                      {subtitle ? (
+                        <Text className="text-sm text-gray-400">{subtitle}</Text>
+                      ) : null}
                     </View>
-                    {subtitle ? (
-                      <Text className="text-sm text-gray-400">{subtitle}</Text>
-                    ) : null}
+
+                    {/* Droite : statut + catégorie + chevron */}
+                    <View className="flex-row items-center gap-2">
+                      <View className="items-end gap-0.5">
+                        <View
+                          className={`px-3 py-1 rounded ${statusBg}`}
+                        >
+                          <Text
+                            className={`text-sm font-bold ${statusText}`}
+                          >
+                            {statusLabel}
+                          </Text>
+                        </View>
+                        {colis.categorie && (
+                          <Text className="text-xs text-red-400">
+                            {colis.categorie}
+                          </Text>
+                        )}
+                      </View>
+                      <ChevronRight size={20} color="#d1d5db" />
+                    </View>
                   </View>
 
-                  {/* Droite : statut + catégorie + chevron */}
-                  <View className="flex-row items-center gap-2">
-                    <View className="items-end gap-0.5">
-                      <View
-                        className={`px-3 py-1 rounded ${
-                          isCollected ? "bg-green-100" : "bg-red-100"
-                        }`}
-                      >
-                        <Text
-                          className={`text-sm font-bold ${
-                            isCollected ? "text-green-800" : "text-red-900"
-                          }`}
-                        >
-                          {isCollected ? "Collecté" : "Non collecté"}
-                        </Text>
-                      </View>
-                      {colis.categorie && (
-                        <Text className="text-xs text-red-400">
-                          {colis.categorie}
-                        </Text>
-                      )}
+                  {/* Raison de refus */}
+                  {refusalReason && (
+                    <View className="mt-2 bg-red-50 rounded-lg px-3 py-2 border border-red-200">
+                      <Text className="text-xs text-red-600">
+                        Raison : {refusalReason}
+                      </Text>
                     </View>
-                    <ChevronRight size={20} color="#d1d5db" />
-                  </View>
+                  )}
                 </Pressable>
               );
             })}

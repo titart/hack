@@ -3,6 +3,16 @@ import type { ObjectAnalysis } from "@/lib/gemini";
 
 type CourseResult = "success" | "fail";
 
+export const REFUSAL_REASONS = [
+  "Appareil non au domicile",
+  "Appareil non DEEE",
+  "Appareil non intègre",
+  "Collecte >5e étage sans ascenseur",
+  "Client non présent / ne répond pas",
+] as const;
+
+export type RefusalReason = (typeof REFUSAL_REASONS)[number];
+
 interface TourneeContextType {
   results: Record<number, CourseResult>;
   photos: Record<number, string>;
@@ -10,10 +20,13 @@ interface TourneeContextType {
   colisPhotos: Record<string, string>;
   /** Résultats d'analyse IA par colis */
   colisAnalysis: Record<string, ObjectAnalysis>;
+  /** Raisons de non-collecte par colis */
+  colisRefusals: Record<string, RefusalReason>;
   setResult: (numero: number, result: CourseResult) => void;
   setPhoto: (numero: number, uri: string) => void;
   setColisPhoto: (colisName: string, uri: string) => void;
   setColisAnalysis: (colisName: string, analysis: ObjectAnalysis) => void;
+  setColisRefusal: (colisName: string, reason: RefusalReason) => void;
   reset: () => void;
 }
 
@@ -24,6 +37,7 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
   const [photos, setPhotos] = useState<Record<number, string>>({});
   const [colisPhotos, setColisPhotosState] = useState<Record<string, string>>({});
   const [colisAnalysis, setColisAnalysisState] = useState<Record<string, ObjectAnalysis>>({});
+  const [colisRefusals, setColisRefusalsState] = useState<Record<string, RefusalReason>>({});
 
   const setResult = useCallback((numero: number, result: CourseResult) => {
     setResults((prev) => ({ ...prev, [numero]: result }));
@@ -41,15 +55,20 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
     setColisAnalysisState((prev) => ({ ...prev, [colisName]: analysis }));
   }, []);
 
+  const setColisRefusal = useCallback((colisName: string, reason: RefusalReason) => {
+    setColisRefusalsState((prev) => ({ ...prev, [colisName]: reason }));
+  }, []);
+
   const reset = useCallback(() => {
     setResults({});
     setPhotos({});
     setColisPhotosState({});
     setColisAnalysisState({});
+    setColisRefusalsState({});
   }, []);
 
   return (
-    <TourneeContext.Provider value={{ results, photos, colisPhotos, colisAnalysis, setResult, setPhoto, setColisPhoto, setColisAnalysis, reset }}>
+    <TourneeContext.Provider value={{ results, photos, colisPhotos, colisAnalysis, colisRefusals, setResult, setPhoto, setColisPhoto, setColisAnalysis, setColisRefusal, reset }}>
       {children}
     </TourneeContext.Provider>
   );

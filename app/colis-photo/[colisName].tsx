@@ -1,12 +1,12 @@
-import { View, Pressable, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Pressable, ScrollView, Alert, ActivityIndicator, Modal } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, Plus } from "lucide-react-native";
+import { Camera, Plus, ChevronDown, X as XIcon } from "lucide-react-native";
 import { useState, useCallback } from "react";
 
 import { Text } from "@/components/ui/text";
-import { useTournee } from "@/contexts/tournee-context";
+import { useTournee, REFUSAL_REASONS, type RefusalReason } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 import { analyzeObject, type ObjectAnalysis } from "@/lib/gemini";
 
@@ -71,7 +71,7 @@ export default function ColisPhotoScreen() {
     numero: string;
   }>();
   const router = useRouter();
-  const { colisPhotos, colisAnalysis, setColisPhoto, setColisAnalysis } = useTournee();
+  const { colisPhotos, colisAnalysis, colisRefusals, setColisPhoto, setColisAnalysis, setColisRefusal } = useTournee();
 
   const decodedName = decodeURIComponent(colisName ?? "");
 
@@ -82,6 +82,7 @@ export default function ColisPhotoScreen() {
 
   const existingPhoto = colisPhotos[decodedName];
   const existingAnalysis = colisAnalysis[decodedName] ?? null;
+  const existingRefusal = colisRefusals[decodedName] ?? null;
   const [photos, setPhotos] = useState<string[]>(
     existingPhoto ? [existingPhoto] : []
   );
@@ -89,6 +90,8 @@ export default function ColisPhotoScreen() {
   const [analysis, setAnalysis] = useState<ObjectAnalysis | null>(existingAnalysis);
   const [loading, setLoading] = useState(false);
   const [fonctionnel, setFonctionnel] = useState<boolean | null>(null);
+  const [showReasons, setShowReasons] = useState(false);
+  const [refusalReason, setRefusalReason] = useState<RefusalReason | null>(existingRefusal);
 
   const selectedPhoto = photos[selectedIndex] ?? null;
 
@@ -141,7 +144,13 @@ export default function ColisPhotoScreen() {
   }
 
   function handleNotCollect() {
-    router.back();
+    setShowReasons(true);
+  }
+
+  function handleSelectReason(reason: RefusalReason) {
+    setRefusalReason(reason);
+    setColisRefusal(decodedName, reason);
+    setShowReasons(false);
   }
 
   // Titre du header
@@ -316,37 +325,104 @@ export default function ColisPhotoScreen() {
         </View>
       </ScrollView>
 
-      {/* ── Boutons du bas (fixés) ───────────────────────────────── */}
-      <View
-        className="flex-row gap-4 bg-white border-t border-gray-200 px-5 pb-8 pt-4"
-        style={{
-          shadowColor: "#000",
-          shadowOpacity: 0.06,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: -3 },
-          elevation: 4,
-        }}
+      {/* ── Bandeau du bas (fixé) ─────────────────────────────────── */}
+      {refusalReason ? (
+        /* Bandeau rouge avec raison de refus */
+        <View
+          className="bg-red-500 px-5 pb-8 pt-4"
+          style={{
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: -3 },
+            elevation: 4,
+          }}
+        >
+          <View className="bg-white rounded-xl px-4 py-3 items-center">
+            <Text className="text-sm font-bold text-red-600">Non collecté</Text>
+            <Text className="text-xs text-gray-500 mt-0.5">{refusalReason}</Text>
+          </View>
+        </View>
+      ) : (
+        /* Boutons normaux */
+        <View
+          className="flex-row gap-4 bg-white border-t border-gray-200 px-5 pb-8 pt-4"
+          style={{
+            shadowColor: "#000",
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: -3 },
+            elevation: 4,
+          }}
+        >
+          <Pressable
+            onPress={handleNotCollect}
+            className="flex-1 py-3.5 items-center rounded-full border border-gray-300 bg-white active:bg-gray-100"
+          >
+            <Text className="text-sm font-semibold text-gray-700">
+              Non collecter
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={handleCollect}
+            className={`flex-1 py-3.5 items-center rounded-full active:opacity-80 ${
+              photos.length > 0
+                ? "bg-gray-700"
+                : "bg-gray-300"
+            }`}
+            disabled={photos.length === 0}
+          >
+            <Text className="text-sm font-semibold text-white">Collecter</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* ── Modal dropdown raisons de non-collecte ────────────────── */}
+      <Modal
+        visible={showReasons}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReasons(false)}
       >
         <Pressable
-          onPress={handleNotCollect}
-          className="flex-1 py-3.5 items-center rounded-full border border-gray-300 bg-white active:bg-gray-100"
+          className="flex-1 bg-black/40 justify-end"
+          onPress={() => setShowReasons(false)}
         >
-          <Text className="text-sm font-semibold text-gray-700">
-            Non collecter
-          </Text>
+          <Pressable
+            className="bg-white rounded-t-3xl px-5 pb-10 pt-5"
+            onPress={() => {}}
+          >
+            {/* Header du dropdown */}
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className="text-lg font-bold text-gray-900">
+                Spécifier la raison
+              </Text>
+              <Pressable
+                onPress={() => setShowReasons(false)}
+                className="p-1"
+              >
+                <XIcon size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+
+            {/* Options */}
+            <View className="gap-2">
+              {REFUSAL_REASONS.map((reason) => (
+                <Pressable
+                  key={reason}
+                  onPress={() => handleSelectReason(reason)}
+                  className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-gray-50 active:bg-gray-100 border border-gray-200"
+                >
+                  <ChevronDown size={16} color="#9ca3af" style={{ transform: [{ rotate: "-90deg" }] }} />
+                  <Text className="text-base text-gray-800 flex-1">
+                    {reason}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
         </Pressable>
-        <Pressable
-          onPress={handleCollect}
-          className={`flex-1 py-3.5 items-center rounded-full active:opacity-80 ${
-            photos.length > 0
-              ? "bg-gray-700"
-              : "bg-gray-300"
-          }`}
-          disabled={photos.length === 0}
-        >
-          <Text className="text-sm font-semibold text-white">Collecter</Text>
-        </Pressable>
-      </View>
+      </Modal>
     </View>
   );
 }
