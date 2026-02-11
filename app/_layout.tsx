@@ -44,6 +44,13 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="colis-photo/[colisName]"
+          options={{
+            title: "Photo colis",
+            headerBackTitle: "Retour",
+          }}
+        />
+        <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />

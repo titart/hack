@@ -1,8 +1,6 @@
-import { View, Pressable, ScrollView, Linking, Platform, Alert } from "react-native";
+import { View, Pressable, ScrollView, Linking, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
-import { Camera, MapPin } from "lucide-react-native";
+import { Check, ChevronRight, MapPin, Package } from "lucide-react-native";
 
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
@@ -18,11 +16,10 @@ import { useTournee } from "@/contexts/tournee-context";
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
-  const { photos, setPhoto, setResult } = useTournee();
+  const { colisPhotos, setResult } = useTournee();
 
   const numInt = Number(numero);
   const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
-  const photoUri = photos[numInt];
 
   if (!adresse) {
     return (
@@ -32,26 +29,9 @@ export default function TourneeDetailScreen() {
     );
   }
 
-  async function takePhoto() {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission requise",
-        "L'accès à la caméra est nécessaire pour prendre des photos."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      setPhoto(numInt, result.assets[0].uri);
-    }
-  }
+  const allColisValidated = adresse.colis.every(
+    (c) => colisPhotos[c.name] != null
+  );
 
   function openMaps() {
     const { latitude, longitude, adresse: addr } = adresse!;
@@ -87,25 +67,46 @@ export default function TourneeDetailScreen() {
         </CardContent>
       </Card>
 
-      {/* Bloc photo */}
+      {/* Liste des colis */}
       <Card>
         <CardHeader>
-          <CardTitle>Photo</CardTitle>
+          <CardTitle>Colis ({adresse.colis.length})</CardTitle>
         </CardHeader>
-        <CardContent className="items-center gap-4">
-          {photoUri && (
-            <Image
-              source={{ uri: photoUri }}
-              style={{ width: "100%", height: 200, borderRadius: 12 }}
-              contentFit="cover"
-            />
-          )}
-          <Pressable
-            onPress={takePhoto}
-            className="h-16 w-16 items-center justify-center rounded-full bg-primary active:opacity-70"
-          >
-            <Camera size={28} color="#ffffff" />
-          </Pressable>
+        <CardContent className="gap-3">
+          {adresse.colis.map((colis) => {
+            const hasPhoto = colisPhotos[colis.name] != null;
+            return (
+              <Pressable
+                key={colis.name}
+                onPress={() =>
+                  router.push(
+                    `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`
+                  )
+                }
+                className={`flex-row items-center justify-between rounded-lg border p-4 ${
+                  hasPhoto
+                    ? "bg-green-50 border-green-500"
+                    : "bg-card border-border"
+                }`}
+              >
+                <View className="flex-row items-center gap-3 flex-1">
+                  <View
+                    className={`h-8 w-8 items-center justify-center rounded-full ${
+                      hasPhoto ? "bg-green-500" : "bg-muted"
+                    }`}
+                  >
+                    {hasPhoto ? (
+                      <Check size={18} color="#ffffff" />
+                    ) : (
+                      <Package size={16} color="#6b7280" />
+                    )}
+                  </View>
+                  <Text className="font-medium flex-1">{colis.name}</Text>
+                </View>
+                <ChevronRight size={20} className="text-muted-foreground" />
+              </Pressable>
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -118,15 +119,20 @@ export default function TourneeDetailScreen() {
           onPress={() => handleResult("fail")}
         >
           <Text className="text-destructive-foreground font-semibold">
-            Fail
+            Échec
           </Text>
         </Button>
         <Button
           size="lg"
-          className="flex-1 bg-green-600 active:bg-green-700"
+          className={`flex-1 ${
+            allColisValidated
+              ? "bg-green-600 active:bg-green-700"
+              : "bg-green-600/50"
+          }`}
+          disabled={!allColisValidated}
           onPress={() => handleResult("success")}
         >
-          <Text className="text-white font-semibold">Success</Text>
+          <Text className="text-white font-semibold">Valider</Text>
         </Button>
       </View>
     </ScrollView>

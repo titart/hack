@@ -2,10 +2,9 @@ import { useState } from "react";
 import { View, Pressable, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Check, ChevronRight } from "lucide-react-native";
+import { Camera, Check, ChevronRight } from "lucide-react-native";
 
 import { Text } from "@/components/ui/text";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
@@ -48,7 +47,7 @@ function Checkbox({
 
 export default function TourneeScreen() {
   const router = useRouter();
-  const { results } = useTournee();
+  const { results, colisPhotos } = useTournee();
   const [step, setStep] = useState<Step>("checklist");
   const [check1, setCheck1] = useState(false);
   const [check2, setCheck2] = useState(false);
@@ -118,11 +117,17 @@ export default function TourneeScreen() {
         <ScrollView className="flex-1" contentContainerClassName="p-4 gap-2">
           {ADRESSES_TOURNEE.map((item) => {
             const result = results[item.numero];
+            const photoDoneCount = item.colis.filter(
+              (c) => colisPhotos[c.name] != null
+            ).length;
+            const allColisPhotoDone = photoDoneCount === item.colis.length;
             const bgClass = result === "success"
               ? "bg-green-50 border-green-500"
               : result === "fail"
                 ? "bg-red-50 border-red-500"
-                : "bg-card border-border";
+                : allColisPhotoDone
+                  ? "bg-green-50/50 border-green-300"
+                  : "bg-card border-border";
 
             return (
               <Pressable
@@ -139,18 +144,27 @@ export default function TourneeScreen() {
                         ? "bg-green-500"
                         : result === "fail"
                           ? "bg-red-500"
-                          : "bg-primary"
+                          : allColisPhotoDone
+                            ? "bg-green-400"
+                            : "bg-primary"
                     }`}
                   >
-                    <Text className="text-white font-bold text-sm">
-                      {item.numero}
-                    </Text>
+                    {result === "success" || allColisPhotoDone ? (
+                      <Check size={16} color="#ffffff" />
+                    ) : (
+                      <Text className="text-white font-bold text-sm">
+                        {item.numero}
+                      </Text>
+                    )}
                   </View>
                   <View className="flex-1">
                     <Text className="font-medium">{item.adresse}</Text>
-                    <Text variant="muted" className="text-sm">
-                      {item.colis.length} colis
-                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      <Camera size={12} color="#6b7280" />
+                      <Text variant="muted" className="text-sm">
+                        {photoDoneCount}/{item.colis.length} colis photographiés
+                      </Text>
+                    </View>
                   </View>
                 </View>
                 <ChevronRight size={20} className="text-muted-foreground" />
