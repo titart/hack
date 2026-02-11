@@ -1,17 +1,12 @@
-import { View, Pressable, ScrollView, Linking, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check, ChevronRight, MapPin, Package } from "lucide-react-native";
+import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 
-import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
-import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
+import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
@@ -30,7 +25,7 @@ export default function TourneeDetailScreen() {
   }
 
   const allColisValidated = adresse.colis.every(
-    (c) => colisPhotos[c.name] != null
+    (c) => colisPhotos[c.name] != null,
   );
 
   function openMaps() {
@@ -80,7 +75,7 @@ export default function TourneeDetailScreen() {
                 key={colis.name}
                 onPress={() =>
                   router.push(
-                    `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`
+                    `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
                   )
                 }
                 className={`flex-row items-center justify-between rounded-lg border p-4 ${
@@ -125,11 +120,12 @@ export default function TourneeDetailScreen() {
         <Button
           size="lg"
           className={`flex-1 ${
-            allColisValidated
-              ? "bg-green-600 active:bg-green-700"
-              : "bg-green-600/50"
+            // allColisValidated
+            // ?
+            "bg-green-600 active:bg-green-700"
+            // : "bg-green-600/50"
           }`}
-          disabled={!allColisValidated}
+          // disabled={!allColisValidated}
           onPress={() => handleResult("success")}
         >
           <Text className="text-white font-semibold">Valider</Text>

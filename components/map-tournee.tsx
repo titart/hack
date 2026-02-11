@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Marker, AnimatedRegion } from "react-native-maps";
+import MapView, { Marker, AnimatedRegion, Polyline } from "react-native-maps";
 import { Text } from "@/components/ui/text";
 
 export interface AdresseTournee {
@@ -18,6 +18,17 @@ interface MapTourneeProps {
   onMarkerPress?: (numero: number) => void;
 }
 
+interface LatLng {
+  latitude: number;
+  longitude: number;
+}
+
+interface SegmentRoute {
+  fromNumero: number;
+  toNumero: number;
+  coords: LatLng[];
+}
+
 const MARKER_COLORS: Record<string, string> = {
   success: "#22c55e",
   fail: "#ef4444",
@@ -25,11 +36,64 @@ const MARKER_COLORS: Record<string, string> = {
   default: "#3b82f6",
 };
 
-const TRUCK_ANIMATION_DURATION = 1500;
+const SEGMENT_COLORS = {
+  done: "#22c55e",    // vert
+  active: "#ec4899",  // rose
+  upcoming: "#3b82f6", // bleu
+};
+
+const TOTAL_ANIMATION_DURATION = 3000;
+const MIN_STEP_DURATION = 16;
+
+/** Fetch road route between two points from OSRM */
+async function fetchSegmentRoute(from: LatLng, to: LatLng): Promise<LatLng[]> {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?geometries=geojson&overview=full`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.code !== "Ok" || !data.routes?.[0]) return [from, to];
+
+    const coords: [number, number][] = data.routes[0].geometry.coordinates;
+    return coords.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+  } catch {
+    return [from, to];
+  }
+}
+
+/** Fetch all segments in parallel */
+async function fetchAllSegments(adresses: AdresseTournee[]): Promise<SegmentRoute[]> {
+  if (adresses.length < 2) return [];
+
+  const promises = adresses.slice(0, -1).map((from, i) => {
+    const to = adresses[i + 1];
+    const fromCoord: LatLng = { latitude: from.latitude, longitude: from.longitude };
+    const toCoord: LatLng = { latitude: to.latitude, longitude: to.longitude };
+
+    return fetchSegmentRoute(fromCoord, toCoord).then((coords) => ({
+      fromNumero: from.numero,
+      toNumero: to.numero,
+      coords,
+    }));
+  });
+
+  return Promise.all(promises);
+}
+
+/** Calculate distance between two points (for proportional timing) */
+function distanceBetween(a: LatLng, b: LatLng): number {
+  const dlat = b.latitude - a.latitude;
+  const dlng = b.longitude - a.longitude;
+  return Math.sqrt(dlat * dlat + dlng * dlng);
+}
 
 export default function MapTournee({ adresses, activeNumero, results, onMarkerPress }: MapTourneeProps) {
   const firstAdresse = adresses[0];
   const mapRef = useRef<MapView>(null);
+  const prevNumeroRef = useRef<number | undefined>(activeNumero);
+  const animationRef = useRef<{ cancelled: boolean }>({ cancelled: false });
+
+  const [segments, setSegments] = useState<SegmentRoute[]>([]);
 
   const truckCoord = useRef(
     new AnimatedRegion({
@@ -59,23 +123,86 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
     };
   }, [adresses]);
 
+  // Fetch all segments once on mount
+  useEffect(() => {
+    fetchAllSegments(adresses).then(setSegments);
+  }, [adresses]);
+
+  const animateAlongRoute = useCallback(
+    async (waypoints: LatLng[]) => {
+      if (waypoints.length < 2) return;
+
+      let totalDist = 0;
+      for (let i = 1; i < waypoints.length; i++) {
+        totalDist += distanceBetween(waypoints[i - 1], waypoints[i]);
+      }
+      if (totalDist === 0) return;
+
+      const token = { cancelled: false };
+      animationRef.current.cancelled = true;
+      animationRef.current = token;
+
+      for (let i = 1; i < waypoints.length; i++) {
+        if (token.cancelled) return;
+
+        const segDist = distanceBetween(waypoints[i - 1], waypoints[i]);
+        const segDuration = Math.max(
+          MIN_STEP_DURATION,
+          Math.round((segDist / totalDist) * TOTAL_ANIMATION_DURATION)
+        );
+
+        await new Promise<void>((resolve) => {
+          truckCoord
+            .timing({
+              latitude: waypoints[i].latitude,
+              longitude: waypoints[i].longitude,
+              latitudeDelta: 0,
+              longitudeDelta: 0,
+              duration: segDuration,
+              useNativeDriver: false,
+              toValue: 0,
+            })
+            .start(() => resolve());
+        });
+      }
+    },
+    [truckCoord]
+  );
+
+  // Animate truck when activeNumero changes
   useEffect(() => {
     if (activeNumero == null) return;
-    const target = adresses.find((a) => a.numero === activeNumero);
-    if (!target) return;
 
-    const config = {
-      latitude: target.latitude,
-      longitude: target.longitude,
-      latitudeDelta: 0,
-      longitudeDelta: 0,
-      duration: TRUCK_ANIMATION_DURATION,
-      useNativeDriver: false,
-      toValue: 0,
-    };
+    const prevNumero = prevNumeroRef.current;
+    prevNumeroRef.current = activeNumero;
 
-    truckCoord.timing(config).start();
-  }, [activeNumero, adresses, truckCoord]);
+    const from = adresses.find((a) => a.numero === prevNumero);
+    const to = adresses.find((a) => a.numero === activeNumero);
+    if (!to) return;
+
+    // First load — just place the truck, no animation
+    if (!from || from.numero === to.numero) {
+      truckCoord.setValue({
+        latitude: to.latitude,
+        longitude: to.longitude,
+        latitudeDelta: 0,
+        longitudeDelta: 0,
+      });
+      return;
+    }
+
+    // Use cached segment if available, otherwise fetch
+    const cached = segments.find((s) => s.fromNumero === from.numero && s.toNumero === to.numero);
+    if (cached) {
+      animateAlongRoute(cached.coords);
+    } else {
+      const fromCoord: LatLng = { latitude: from.latitude, longitude: from.longitude };
+      const toCoord: LatLng = { latitude: to.latitude, longitude: to.longitude };
+      fetchSegmentRoute(fromCoord, toCoord).then((waypoints) => {
+        animateAlongRoute(waypoints);
+      });
+    }
+  }, [activeNumero, adresses, truckCoord, animateAlongRoute, segments]);
 
   return (
     <MapView
@@ -83,6 +210,32 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
       style={styles.map}
       initialRegion={initialRegion}
     >
+      {/* Colored segments */}
+      {segments.map((seg) => {
+        let color = SEGMENT_COLORS.upcoming;
+        if (activeNumero != null) {
+          if (seg.toNumero <= activeNumero) {
+            color = SEGMENT_COLORS.done;
+          } else if (seg.fromNumero < activeNumero && seg.toNumero > activeNumero) {
+            color = SEGMENT_COLORS.active;
+          }
+          // The segment leading TO the active address is the "current" one
+          if (seg.toNumero === activeNumero) {
+            color = SEGMENT_COLORS.active;
+          }
+        }
+
+        return (
+          <Polyline
+            key={`${seg.fromNumero}-${seg.toNumero}`}
+            coordinates={seg.coords}
+            strokeColor={color}
+            strokeWidth={4}
+            lineDashPattern={[6, 4]}
+          />
+        );
+      })}
+
       {adresses.map((item) => {
         const isActive = activeNumero != null && item.numero === activeNumero;
         const result = results?.[item.numero];
