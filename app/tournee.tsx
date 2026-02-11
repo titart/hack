@@ -1,95 +1,87 @@
 import { useRouter } from "expo-router";
-import { Camera, Check, ChevronRight } from "lucide-react-native";
+import { ChevronRight, Navigation, Package, Truck } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MapTournee from "@/components/map-tournee";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
-type Step = "checklist" | "collecting" | "done";
+const TOURNEE_INFO = {
+  name: "T01",
+  date: "12 Février",
+  heureDebut: "14h",
+  heureFin: "17h",
+  totalPoids: "916kg",
+  chauffeur: "Phany Jackmain",
+  truskers: 2,
+  distance: "90km",
+  immatriculation: "FY-JHT-88",
+  volume: "20m3",
+};
 
-function Checkbox({
-  checked,
-  onPress,
-  label,
-}: {
-  checked: boolean;
-  onPress: () => void;
-  label: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center gap-3 rounded-lg border border-border p-4"
-    >
-      <View
-        className={`h-6 w-6 items-center justify-center rounded border-2 ${
-          checked
-            ? "border-primary bg-primary"
-            : "border-muted-foreground bg-background"
-        }`}
-      >
-        {checked && <Check size={16} color="#ffffff" />}
-      </View>
-      <Text className="text-base">{label}</Text>
-    </Pressable>
-  );
+function extractPostalCode(adresse: string): string {
+  const match = adresse.match(/\d{5}/);
+  return match ? match[0] : "";
 }
 
 export default function TourneeScreen() {
   const router = useRouter();
-  const { results, colisPhotos } = useTournee();
-  const [step, setStep] = useState<Step>("checklist");
-  const [check1, setCheck1] = useState(false);
-  const [check2, setCheck2] = useState(false);
+  const { results } = useTournee();
   const [activeNumero, setActiveNumero] = useState(ADRESSES_TOURNEE[0]?.numero);
 
-  const allDone = Object.keys(results).length === ADRESSES_TOURNEE.length;
-  const currentStep = allDone ? "done" : step;
-
-  const handleCheck1 = () => {
-    const next = !check1;
-    setCheck1(next);
-    if (next && check2) setStep("collecting");
-  };
-
-  const handleCheck2 = () => {
-    const next = !check2;
-    setCheck2(next);
-    if (check1 && next) setStep("collecting");
-  };
-
-  if (currentStep === "checklist") {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 justify-center p-6 gap-6">
-          <Text variant="h2" className="text-center">
-            Vérification avant départ
-          </Text>
-          <View className="gap-4">
-            <Checkbox
-              checked={check1}
-              onPress={handleCheck1}
-              label="Véhicule vérifié"
-            />
-            <Checkbox
-              checked={check2}
-              onPress={handleCheck2}
-              label="Équipements prêts"
-            />
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const totalColis = ADRESSES_TOURNEE.reduce(
+    (sum, a) => sum + a.colis.length,
+    0,
+  );
+  const nbPoints = ADRESSES_TOURNEE.length;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
-      <View style={{ height: "50%" }}>
+      {/* Header */}
+      <View className="bg-neutral-600 px-4 py-3">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-white text-xl font-bold">
+            {TOURNEE_INFO.name} - {nbPoints} Points
+          </Text>
+          <Text className="text-white text-sm italic">
+            {TOURNEE_INFO.date} : {TOURNEE_INFO.heureDebut} -{" "}
+            {TOURNEE_INFO.heureFin}
+          </Text>
+        </View>
+        <View className="h-px bg-white/20 my-2" />
+        <View className="flex-row items-center justify-between">
+          <Text className="text-white font-bold text-sm">
+            {totalColis} Colis - {TOURNEE_INFO.totalPoids}
+          </Text>
+          <View className="flex-row items-center gap-3">
+            <Text className="text-white font-bold text-sm">
+              {TOURNEE_INFO.chauffeur}
+            </Text>
+            <Text className="text-white/60 text-xs">
+              {TOURNEE_INFO.truskers} Truskers
+            </Text>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-between mt-1">
+          <View className="flex-row items-center gap-1">
+            <Package size={14} color="white" />
+            <Text className="text-white text-sm">{TOURNEE_INFO.distance}</Text>
+          </View>
+          <View className="flex-row items-center gap-1">
+            <Truck size={14} color="white" />
+            <Text className="text-white text-sm">
+              {TOURNEE_INFO.immatriculation}
+            </Text>
+          </View>
+          <Text className="text-white text-sm">{TOURNEE_INFO.volume}</Text>
+        </View>
+      </View>
+
+      {/* Map */}
+      <View style={{ height: "35%" }}>
         <MapTournee
           adresses={ADRESSES_TOURNEE}
           activeNumero={activeNumero}
@@ -98,88 +90,56 @@ export default function TourneeScreen() {
         />
       </View>
 
-      {currentStep === "done" ? (
-        <View className="flex-1 p-6 justify-center">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Tournée terminée !</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Text className="text-center text-lg" variant="muted">
-                Toutes les collectes ont été effectuées.
-              </Text>
-            </CardContent>
-          </Card>
-        </View>
-      ) : (
-        <ScrollView className="flex-1" contentContainerClassName="p-4 gap-2">
-          {ADRESSES_TOURNEE.map((item) => {
-            const result = results[item.numero];
-            const photoDoneCount = item.colis.filter(
-              (c) => colisPhotos[c.name] != null,
-            ).length;
-            const allColisPhotoDone = photoDoneCount === item.colis.length;
-            const bgClass =
-              result === "success"
-                ? "bg-green-50 border-green-500"
-                : result === "fail"
-                  ? "bg-red-50 border-red-500"
-                  : allColisPhotoDone
-                    ? "bg-green-50/50 border-green-300"
-                    : "bg-card border-border";
+      {/* Points list */}
+      <ScrollView className="flex-1" contentContainerClassName="p-4 gap-3">
+        {ADRESSES_TOURNEE.map((item) => {
+          const postalCode = extractPostalCode(item.adresse);
 
-            return (
-              <Pressable
-                key={item.numero}
-                onPress={() => setActiveNumero(item.numero)}
-                onLongPress={() =>
-                  router.push(`/tournee-detail/${item.numero}`)
-                }
-                className={`flex-row items-center justify-between rounded-lg border p-4 ${bgClass}`}
+          return (
+            <Pressable
+              key={item.numero}
+              onPress={() => {
+                setActiveNumero(item.numero);
+              }}
+              onLongPress={() => {
+                router.push(`/tournee-detail/${item.numero}`);
+              }}
+              className="flex-row items-center bg-neutral-200 rounded-xl px-4 py-4"
+            >
+              {/* Direction icon */}
+              <View
+                className="h-10 w-10 items-center justify-center rounded-lg bg-neutral-500 mr-3"
+                style={{ transform: [{ rotate: "45deg" }] }}
               >
-                <View className="flex-row items-center gap-3 flex-1">
-                  <View
-                    className={`h-8 w-8 items-center justify-center rounded-full ${
-                      result === "success"
-                        ? "bg-green-500"
-                        : result === "fail"
-                          ? "bg-red-500"
-                          : allColisPhotoDone
-                            ? "bg-green-400"
-                            : activeNumero === item.numero
-                              ? "bg-pink-500"
-                              : "bg-primary"
-                    }`}
-                  >
-                    {result === "success" || allColisPhotoDone ? (
-                      <Check size={16} color="#ffffff" />
-                    ) : (
-                      <Text className="text-white font-bold text-sm">
-                        {item.numero}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-medium">{item.adresse}</Text>
-                    <View className="flex-row items-center gap-2">
-                      <Camera size={12} color="#6b7280" />
-                      <Text variant="muted" className="text-sm">
-                        {photoDoneCount}/{item.colis.length} colis photographiés
-                      </Text>
-                    </View>
-                  </View>
+                <Navigation
+                  size={18}
+                  color="#ffffff"
+                  style={{ transform: [{ rotate: "-45deg" }] }}
+                />
+              </View>
+
+              {/* Content */}
+              <View className="flex-1">
+                <View className="flex-row items-baseline gap-2">
+                  <Text className="font-bold text-base">
+                    P{item.numero} - {item.creneauHoraire}
+                  </Text>
+                  <Text className="text-neutral-500 text-sm">
+                    {item.ville}
+                    {postalCode ? `, ${postalCode}` : ""}
+                  </Text>
                 </View>
-                <Pressable
-                  onPress={() => router.push(`/tournee-detail/${item.numero}`)}
-                  className="p-2"
-                >
-                  <ChevronRight size={20} className="text-muted-foreground" />
-                </Pressable>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
+                <Text className="text-neutral-600 text-sm mt-0.5">
+                  {item.missionType ?? "Collecte"} ({item.colis.length})
+                </Text>
+              </View>
+
+              {/* Chevron */}
+              <ChevronRight size={20} color="#9ca3af" />
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </SafeAreaView>
   );
 }
