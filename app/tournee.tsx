@@ -1,19 +1,14 @@
-import { useState } from "react";
-import { View, Pressable, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Camera, Check, ChevronRight } from "lucide-react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Text } from "@/components/ui/text";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
 import MapTournee from "@/components/map-tournee";
-import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
+import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
 type Step = "checklist" | "collecting" | "done";
 
@@ -51,9 +46,9 @@ export default function TourneeScreen() {
   const [step, setStep] = useState<Step>("checklist");
   const [check1, setCheck1] = useState(false);
   const [check2, setCheck2] = useState(false);
+  const [activeNumero, setActiveNumero] = useState(ADRESSES_TOURNEE[0]?.numero);
 
-  const allDone =
-    Object.keys(results).length === ADRESSES_TOURNEE.length;
+  const allDone = Object.keys(results).length === ADRESSES_TOURNEE.length;
   const currentStep = allDone ? "done" : step;
 
   const handleCheck1 = () => {
@@ -95,16 +90,19 @@ export default function TourneeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       <View style={{ height: "50%" }}>
-        <MapTournee adresses={ADRESSES_TOURNEE} results={results} />
+        <MapTournee
+          adresses={ADRESSES_TOURNEE}
+          activeNumero={activeNumero}
+          results={results}
+          onMarkerPress={setActiveNumero}
+        />
       </View>
 
       {currentStep === "done" ? (
         <View className="flex-1 p-6 justify-center">
           <Card>
             <CardHeader>
-              <CardTitle className="text-center">
-                Tournée terminée !
-              </CardTitle>
+              <CardTitle className="text-center">Tournée terminée !</CardTitle>
             </CardHeader>
             <CardContent>
               <Text className="text-center text-lg" variant="muted">
@@ -118,21 +116,23 @@ export default function TourneeScreen() {
           {ADRESSES_TOURNEE.map((item) => {
             const result = results[item.numero];
             const photoDoneCount = item.colis.filter(
-              (c) => colisPhotos[c.name] != null
+              (c) => colisPhotos[c.name] != null,
             ).length;
             const allColisPhotoDone = photoDoneCount === item.colis.length;
-            const bgClass = result === "success"
-              ? "bg-green-50 border-green-500"
-              : result === "fail"
-                ? "bg-red-50 border-red-500"
-                : allColisPhotoDone
-                  ? "bg-green-50/50 border-green-300"
-                  : "bg-card border-border";
+            const bgClass =
+              result === "success"
+                ? "bg-green-50 border-green-500"
+                : result === "fail"
+                  ? "bg-red-50 border-red-500"
+                  : allColisPhotoDone
+                    ? "bg-green-50/50 border-green-300"
+                    : "bg-card border-border";
 
             return (
               <Pressable
                 key={item.numero}
-                onPress={() =>
+                onPress={() => setActiveNumero(item.numero)}
+                onLongPress={() =>
                   router.push(`/tournee-detail/${item.numero}`)
                 }
                 className={`flex-row items-center justify-between rounded-lg border p-4 ${bgClass}`}
@@ -146,7 +146,9 @@ export default function TourneeScreen() {
                           ? "bg-red-500"
                           : allColisPhotoDone
                             ? "bg-green-400"
-                            : "bg-primary"
+                            : activeNumero === item.numero
+                              ? "bg-pink-500"
+                              : "bg-primary"
                     }`}
                   >
                     {result === "success" || allColisPhotoDone ? (
@@ -167,7 +169,12 @@ export default function TourneeScreen() {
                     </View>
                   </View>
                 </View>
-                <ChevronRight size={20} className="text-muted-foreground" />
+                <Pressable
+                  onPress={() => router.push(`/tournee-detail/${item.numero}`)}
+                  className="p-2"
+                >
+                  <ChevronRight size={20} className="text-muted-foreground" />
+                </Pressable>
               </Pressable>
             );
           })}

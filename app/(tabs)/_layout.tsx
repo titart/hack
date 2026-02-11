@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+
 import { Camera, Compass, Home, User } from "lucide-react-native";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
