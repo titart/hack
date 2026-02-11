@@ -94,6 +94,7 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
   const animationRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 
   const [segments, setSegments] = useState<SegmentRoute[]>([]);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const truckCoord = useRef(
     new AnimatedRegion({
@@ -104,24 +105,19 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
     })
   ).current;
 
-  const initialRegion = useMemo(() => {
-    if (adresses.length === 0) {
-      return { latitude: 48.9122, longitude: 2.3342, latitudeDelta: 0.025, longitudeDelta: 0.025 };
+  const coordinates = useMemo(
+    () => adresses.map((a) => ({ latitude: a.latitude, longitude: a.longitude })),
+    [adresses]
+  );
+
+  const handleMapReady = useCallback(() => {
+    if (coordinates.length > 0) {
+      mapRef.current?.fitToCoordinates(coordinates, {
+        edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+        animated: false,
+      });
     }
-    const lats = adresses.map((a) => a.latitude);
-    const lngs = adresses.map((a) => a.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const PADDING = 1.4;
-    return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max((maxLat - minLat) * PADDING, 0.005),
-      longitudeDelta: Math.max((maxLng - minLng) * PADDING, 0.005),
-    };
-  }, [adresses]);
+  }, [coordinates]);
 
   // Fetch all segments once on mount
   useEffect(() => {
@@ -142,8 +138,13 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
       animationRef.current.cancelled = true;
       animationRef.current = token;
 
+      setIsAnimating(true);
+
       for (let i = 1; i < waypoints.length; i++) {
-        if (token.cancelled) return;
+        if (token.cancelled) {
+          setIsAnimating(false);
+          return;
+        }
 
         const segDist = distanceBetween(waypoints[i - 1], waypoints[i]);
         const segDuration = Math.max(
@@ -164,6 +165,10 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
             })
             .start(() => resolve());
         });
+      }
+
+      if (!token.cancelled) {
+        setIsAnimating(false);
       }
     },
     [truckCoord]
@@ -208,20 +213,16 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
     <MapView
       ref={mapRef}
       style={styles.map}
-      initialRegion={initialRegion}
+      onMapReady={handleMapReady}
     >
       {/* Colored segments */}
       {segments.map((seg) => {
         let color = SEGMENT_COLORS.upcoming;
         if (activeNumero != null) {
-          if (seg.toNumero <= activeNumero) {
+          if (seg.toNumero < activeNumero) {
             color = SEGMENT_COLORS.done;
-          } else if (seg.fromNumero < activeNumero && seg.toNumero > activeNumero) {
-            color = SEGMENT_COLORS.active;
-          }
-          // The segment leading TO the active address is the "current" one
-          if (seg.toNumero === activeNumero) {
-            color = SEGMENT_COLORS.active;
+          } else if (seg.toNumero === activeNumero) {
+            color = isAnimating ? SEGMENT_COLORS.active : SEGMENT_COLORS.done;
           }
         }
 
