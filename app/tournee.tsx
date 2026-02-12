@@ -78,11 +78,14 @@ export default function TourneeScreen() {
   const [showOptimizationBanner, setShowOptimizationBanner] = useState(false);
   const [showDecheterieSheet, setShowDecheterieSheet] = useState(false);
 
-  // Afficher le banner de réorganisation quand le point 3 passe en "failed"
+  // Afficher le banner de réorganisation quand le point 3 passe en "failed" (avec délai de 15s)
   const point3Status = state.points[3]?.status;
   useEffect(() => {
     if (point3Status === "failed") {
-      setShowOptimizationBanner(true);
+      const timer = setTimeout(() => {
+        setShowOptimizationBanner(true);
+      }, 5000);
+      return () => clearTimeout(timer);
     }
   }, [point3Status]);
 
