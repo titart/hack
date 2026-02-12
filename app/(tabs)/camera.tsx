@@ -245,6 +245,11 @@ export default function CameraScreen() {
                     <ScanSearch size={20} className="text-primary" />
                     <CardTitle>{analysis.name}</CardTitle>
                   </View>
+                  {analysis.brand && analysis.brand !== "Marque inconnue" && (
+                    <Text className="text-sm font-semibold text-primary mt-1">
+                      {analysis.brand}
+                    </Text>
+                  )}
                   <CardDescription>{analysis.description}</CardDescription>
                 </CardHeader>
               </Card>

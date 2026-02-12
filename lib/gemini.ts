@@ -162,6 +162,8 @@ export async function analyzeImage(
 export type ObjectAnalysis = {
   /** Nom de l'objet identifié (ex: "Micro-ondes", "Réfrigérateur") */
   name: string;
+  /** Marque et/ou modèle détecté par l'IA (ex: "Samsung MW3500K") */
+  brand: string;
   /** Description courte de l'objet */
   description: string;
   /** Note de recyclabilité sur 10 */
@@ -181,7 +183,8 @@ const OBJECT_ANALYSIS_PROMPT = `Tu es un expert en recyclage et en évaluation d
 Analyse la photo fournie et réponds UNIQUEMENT avec un objet JSON valide (sans markdown, sans backticks, juste le JSON brut) avec cette structure exacte :
 
 {
-  "name": "Nom de l'objet identifié (ex: Micro-ondes Samsung)",
+  "name": "Nom générique de l'objet (ex: Micro-ondes, Réfrigérateur, Lave-linge)",
+  "brand": "Marque et/ou modèle détecté (ex: Samsung MW3500K, Whirlpool, LG F4V5VYP0W)",
   "description": "Description courte de l'objet visible sur la photo (1-2 phrases)",
   "recyclingScore": 7,
   "recyclingComment": "Explication de la note de recyclage (matériaux, facilité de démontage, filières existantes...)",
@@ -193,6 +196,7 @@ Analyse la photo fournie et réponds UNIQUEMENT avec un objet JSON valide (sans 
 Règles :
 - recyclingScore : note de 1 à 10 sur la facilité et le potentiel de recyclage de cet objet (10 = très facilement recyclable)
 - conditionScore : note de 1 à 10 sur l'état apparent de l'objet (10 = comme neuf)
+- brand : identifie la marque et le modèle de l'objet si visible sur la photo (logo, étiquette, design reconnaissable). Mets la marque ET le modèle si tu peux les détecter. Si tu ne peux identifier ni la marque ni le modèle, mets "Marque inconnue"
 - Si tu ne peux pas identifier l'objet, mets "name": "Objet non identifié" et adapte les autres champs
 - Sois précis et utile dans tes commentaires
 - Réponds en français`;
@@ -232,6 +236,7 @@ export async function analyzeObject(uri: string): Promise<ObjectAnalysis> {
     // Fallback si le parsing échoue
     return {
       name: "Objet non identifié",
+      brand: "Marque inconnue",
       description: raw.slice(0, 200),
       recyclingScore: 5,
       recyclingComment: "Impossible d'évaluer le recyclage automatiquement.",

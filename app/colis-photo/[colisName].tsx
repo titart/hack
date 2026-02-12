@@ -266,8 +266,8 @@ export default function ColisPhotoScreen() {
             <Text className="text-sm text-muted-foreground w-24">Marque</Text>
             <Text className="text-sm font-medium text-muted-foreground mr-1">:</Text>
             <Text className="text-sm font-bold text-foreground flex-1">
-              {colis?.marque
-                ? `${colis.marque}${colis.modele ? ` ${colis.modele}` : ""}`
+              {analysis?.brand && analysis.brand !== "Marque inconnue"
+                ? analysis.brand
                 : "—"}
             </Text>
           </View>
