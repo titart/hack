@@ -1,19 +1,35 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
-    ChevronRight,
-    FileText,
-    HelpCircle,
-    Info,
-    MapPin,
-    Phone,
-    PlusCircle,
-    User,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  HelpCircle,
+  Info,
+  MapPin,
+  Phone,
+  PlusCircle,
+  RotateCcw,
+  User,
+  X as XIcon,
 } from "lucide-react-native";
-import { useMemo } from "react";
-import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import {
+  Keyboard,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native";
 
 import { Text } from "@/components/ui/text";
-import { useTournee } from "@/contexts/tournee-context";
+import {
+  FAILURE_REASONS,
+  useTournee,
+  type FailureReason,
+} from "@/contexts/tournee-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
 import { getPoint } from "@/lib/tournee-selectors";
@@ -23,7 +39,17 @@ export default function TourneeDetailScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
-  const { state, startPoint } = useTournee();
+  const { state, startPoint, completePoint, resetPoint } = useTournee();
+
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [showFailReasons, setShowFailReasons] = useState(false);
+  const [digits, setDigits] = useState(["", "", "", ""]);
+  const digitRefs = [
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+    useRef<TextInput>(null),
+  ];
 
   const numInt = Number(numero);
   const point = useMemo(() => getPoint(state, numInt), [state, numInt]);
@@ -56,6 +82,42 @@ export default function TourneeDetailScreen() {
   const handleStart = () => {
     if (point.status === "pending") {
       startPoint(numInt);
+    }
+  };
+
+  const handleSelectFailureReason = (reason: FailureReason) => {
+    completePoint(numInt, "failed", reason);
+    setShowFailReasons(false);
+    router.back();
+  };
+
+  const handleDigitChange = (text: string, index: number) => {
+    const digit = text.replace(/[^0-9]/g, "").slice(-1);
+    const next = [...digits];
+    next[index] = digit;
+    setDigits(next);
+    if (digit && index < 3) {
+      digitRefs[index + 1].current?.focus();
+    }
+    // Auto-confirm when all 4 digits are filled
+    if (digit && next.every((d) => d !== "")) {
+      Keyboard.dismiss();
+      setShowCodeModal(false);
+      setDigits(["", "", "", ""]);
+      completePoint(numInt, "success");
+      router.back();
+    }
+  };
+
+  const handleDigitKeyPress = (
+    e: { nativeEvent: { key: string } },
+    index: number,
+  ) => {
+    if (e.nativeEvent.key === "Backspace" && !digits[index] && index > 0) {
+      const next = [...digits];
+      next[index - 1] = "";
+      setDigits(next);
+      digitRefs[index - 1].current?.focus();
     }
   };
 
@@ -267,27 +329,139 @@ export default function TourneeDetailScreen() {
           elevation: 4,
         }}
       >
-        <Pressable
-          onPress={handleStart}
-          className={`rounded-full py-3.5 items-center ${
-            point.status === "pending" ? "bg-primary" : "border border-border"
-          }`}
-        >
-          <Text
-            className={`text-base font-medium ${
-              point.status === "pending" ? "text-white" : "text-foreground"
-            }`}
+        {point.status === "started" ? (
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={() => setShowFailReasons(true)}
+              className="flex-1 rounded-full py-3.5 items-center bg-red-500"
+            >
+              <Text className="text-base font-medium text-white">Échoué</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCodeModal(true)}
+              className="flex-1 rounded-full py-3.5 items-center bg-green-500"
+            >
+              <Text className="text-base font-medium text-white">Succès</Text>
+            </Pressable>
+          </View>
+        ) : point.status === "success" || point.status === "failed" ? (
+          <View className="flex-row gap-3 items-center">
+            <Pressable
+              className={`flex-1 rounded-full py-3.5 items-center ${
+                point.status === "success" ? "bg-green-600" : "bg-red-500"
+              }`}
+              disabled
+            >
+              <Text className="text-base font-medium text-white">
+                {point.status === "success" ? "Terminé" : "Échoué"}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => resetPoint(numInt)}
+              className="h-12 w-12 items-center justify-center rounded-full border border-border"
+            >
+              <RotateCcw size={20} color="#6b7280" />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={handleStart}
+            className="rounded-full py-3.5 items-center bg-primary"
           >
-            {point.status === "pending"
-              ? "Démarrer"
-              : point.status === "started"
-                ? "En cours..."
-                : point.status === "success"
-                  ? "Terminé"
-                  : "Échoué"}
-          </Text>
-        </Pressable>
+            <Text className="text-base font-medium text-white">Démarrer</Text>
+          </Pressable>
+        )}
       </View>
+
+      {/* ── Bottom sheet code à 4 chiffres ─────────────────── */}
+      <Modal
+        visible={showCodeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowCodeModal(false);
+          setDigits(["", "", "", ""]);
+        }}
+      >
+        <Pressable
+          className="flex-1 bg-black/50"
+          onPress={() => {
+            setShowCodeModal(false);
+            setDigits(["", "", "", ""]);
+          }}
+        />
+        <View className="bg-card rounded-t-3xl px-6 pt-6 pb-10 gap-6">
+          <Text className="text-lg font-bold text-foreground">Valider</Text>
+
+          <View className="flex-row justify-center gap-4">
+            {digits.map((digit, i) => (
+              <TextInput
+                key={i}
+                ref={digitRefs[i]}
+                value={digit}
+                onChangeText={(t) => handleDigitChange(t, i)}
+                onKeyPress={(e) => handleDigitKeyPress(e, i)}
+                keyboardType="number-pad"
+                maxLength={1}
+                autoFocus={i === 0}
+                className="w-16 h-20 border-2 border-border rounded-xl bg-muted/30 text-center text-3xl font-bold text-foreground"
+                selectTextOnFocus
+              />
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Bottom sheet raisons d'échec ──────────────────── */}
+      <Modal
+        visible={showFailReasons}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFailReasons(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/40 justify-end"
+          onPress={() => setShowFailReasons(false)}
+        >
+          <Pressable
+            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
+            onPress={() => {}}
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className="text-lg font-bold text-foreground">
+                Spécifier la raison
+              </Text>
+              <Pressable
+                onPress={() => setShowFailReasons(false)}
+                className="p-1"
+              >
+                <XIcon size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+
+            {/* Options */}
+            <View className="gap-2">
+              {FAILURE_REASONS.map((reason) => (
+                <Pressable
+                  key={reason}
+                  onPress={() => handleSelectFailureReason(reason)}
+                  className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-secondary active:bg-accent border border-border"
+                >
+                  <ChevronDown
+                    size={16}
+                    color="#9ca3af"
+                    style={{ transform: [{ rotate: "-90deg" }] }}
+                  />
+                  <Text className="text-base text-foreground flex-1">
+                    {reason}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

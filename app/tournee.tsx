@@ -113,17 +113,24 @@ export default function TourneeScreen() {
       <ScrollView className="flex-1" contentContainerClassName="p-4 gap-3">
         {orderedAdresses.map((item) => {
           const postalCode = extractPostalCode(item.adresse);
+          const statusBg =
+            item.status === "started"
+              ? "bg-green-100"
+              : item.status === "success"
+                ? "bg-green-600"
+                : item.status === "failed"
+                  ? "bg-red-500"
+                  : "bg-secondary";
+          const lightText = item.status === "success" || item.status === "failed";
 
           return (
             <Pressable
               key={item.numero}
               onPress={() => {
+                router.push(`/tournee-detail/${item.numero}`);
                 setActiveNumero(item.numero);
               }}
-              onLongPress={() => {
-                router.push(`/tournee-detail/${item.numero}`);
-              }}
-              className="flex-row items-center bg-secondary rounded-xl px-4 py-4"
+              className={`flex-row items-center rounded-xl px-4 py-4 ${statusBg}`}
             >
               {/* Direction icon */}
               <View
@@ -140,21 +147,21 @@ export default function TourneeScreen() {
               {/* Content */}
               <View className="flex-1">
                 <View className="flex-row items-baseline gap-2">
-                  <Text className="font-bold text-base">
+                  <Text className={`font-bold text-base ${lightText ? "text-white" : ""}`}>
                     P{item.numero} - {item.creneauHoraire}
                   </Text>
-                  <Text className="text-muted-foreground text-sm">
+                  <Text className={`text-sm ${lightText ? "text-white/70" : "text-muted-foreground"}`}>
                     {item.ville}
                     {postalCode ? `, ${postalCode}` : ""}
                   </Text>
                 </View>
-                <Text className="text-muted-foreground text-sm mt-0.5">
+                <Text className={`text-sm mt-0.5 ${lightText ? "text-white/70" : "text-muted-foreground"}`}>
                   {item.missionType ?? "Collecte"} ({item.colis.length})
                 </Text>
               </View>
 
               {/* Chevron */}
-              <ChevronRight size={20} color="#9ca3af" />
+              <ChevronRight size={20} color={lightText ? "#ffffff" : "#9ca3af"} />
             </Pressable>
           );
         })}

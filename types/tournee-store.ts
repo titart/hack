@@ -23,6 +23,14 @@ export const REFUSAL_REASONS = [
 
 export type RefusalReason = (typeof REFUSAL_REASONS)[number];
 
+export const FAILURE_REASONS = [
+  "Personne absente",
+  "Accès impossible",
+  "La réponse D",
+] as const;
+
+export type FailureReason = (typeof FAILURE_REASONS)[number];
+
 // ---------------------------------------------------------------------------
 // State d'un colis
 // ---------------------------------------------------------------------------
@@ -68,6 +76,7 @@ export interface PointLivraisonState {
   startedAt?: string;
   completedAt?: string;
   photo?: string;
+  failureReason?: FailureReason;
 
   /** Colis indexés par nom */
   colis: Record<string, ColisState>;
@@ -96,7 +105,7 @@ export interface TourneeState {
 export type TourneeAction =
   | { type: "START_TOURNEE" }
   | { type: "START_POINT"; numero: number }
-  | { type: "COMPLETE_POINT"; numero: number; result: "success" | "failed" }
+  | { type: "COMPLETE_POINT"; numero: number; result: "success" | "failed"; failureReason?: FailureReason }
   | { type: "SET_POINT_PHOTO"; numero: number; uri: string }
   | {
       type: "COLLECT_COLIS";
@@ -112,6 +121,7 @@ export type TourneeAction =
       reason: RefusalReason;
     }
   | { type: "SET_COLIS_ANALYSIS"; numero: number; colisName: string; analysis: ObjectAnalysis }
+  | { type: "RESET_POINT"; numero: number }
   | { type: "SWAP_POINTS"; numeroA: number; numeroB: number }
   | { type: "COMPLETE_TOURNEE" }
   | { type: "RESET"; adresses: AdresseTournee[] };
@@ -219,6 +229,7 @@ export function tourneeReducer(state: TourneeState, action: TourneeAction): Tour
             ...point,
             status: newStatus as PointStatus,
             completedAt: new Date().toISOString(),
+            failureReason: action.failureReason,
           },
         },
       };
@@ -306,6 +317,22 @@ export function tourneeReducer(state: TourneeState, action: TourneeAction): Tour
                 analysis: action.analysis,
               },
             },
+          },
+        },
+      };
+    }
+
+    case "RESET_POINT": {
+      const point = state.points[action.numero];
+      if (!point) return state;
+      return {
+        ...state,
+        points: {
+          ...state.points,
+          [action.numero]: {
+            ...point,
+            status: "started",
+            completedAt: undefined,
           },
         },
       };

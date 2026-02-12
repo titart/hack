@@ -5,14 +5,16 @@ import {
   type TourneeState,
   type TourneeAction,
   type RefusalReason,
+  type FailureReason,
   tourneeReducer,
   initTourneeState,
   REFUSAL_REASONS,
+  FAILURE_REASONS,
 } from "@/types/tournee-store";
 
 // Re-export pour les consommateurs existants
-export { REFUSAL_REASONS };
-export type { RefusalReason };
+export { REFUSAL_REASONS, FAILURE_REASONS };
+export type { RefusalReason, FailureReason };
 
 // ---------------------------------------------------------------------------
 // Context type
@@ -28,11 +30,12 @@ interface TourneeContextType {
 
   startTournee: () => void;
   startPoint: (numero: number) => void;
-  completePoint: (numero: number, result: "success" | "failed") => void;
+  completePoint: (numero: number, result: "success" | "failed", failureReason?: FailureReason) => void;
   setPointPhoto: (numero: number, uri: string) => void;
   collectColis: (numero: number, colisName: string, photo: string, analysis?: ObjectAnalysis) => void;
   refuseColis: (numero: number, colisName: string, reason: RefusalReason) => void;
   setColisAnalysis: (numero: number, colisName: string, analysis: ObjectAnalysis) => void;
+  resetPoint: (numero: number) => void;
   swapPoints: (numeroA: number, numeroB: number) => void;
   completeTournee: () => void;
   reset: () => void;
@@ -61,8 +64,8 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "START_POINT", numero });
   }, []);
 
-  const completePoint = useCallback((numero: number, result: "success" | "failed") => {
-    dispatch({ type: "COMPLETE_POINT", numero, result });
+  const completePoint = useCallback((numero: number, result: "success" | "failed", failureReason?: FailureReason) => {
+    dispatch({ type: "COMPLETE_POINT", numero, result, failureReason });
   }, []);
 
   const setPointPhoto = useCallback((numero: number, uri: string) => {
@@ -90,6 +93,10 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const resetPoint = useCallback((numero: number) => {
+    dispatch({ type: "RESET_POINT", numero });
+  }, []);
+
   const swapPoints = useCallback((numeroA: number, numeroB: number) => {
     dispatch({ type: "SWAP_POINTS", numeroA, numeroB });
   }, []);
@@ -114,6 +121,7 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
         collectColis,
         refuseColis,
         setColisAnalysis,
+        resetPoint,
         swapPoints,
         completeTournee,
         reset,
