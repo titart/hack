@@ -139,8 +139,8 @@ export default function TourneeScreen() {
             const dechBg = isLocked
               ? "bg-secondary opacity-50"
               : isCompleted
-                ? "bg-green-50 border border-green-200"
-                : "bg-orange-50 border border-orange-200";
+                ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700"
+                : "bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700";
             const iconBg = isLocked
               ? "bg-muted-foreground"
               : isCompleted
@@ -192,7 +192,7 @@ export default function TourneeScreen() {
 
           const statusBg =
             item.status === "started"
-              ? "bg-green-100"
+              ? "bg-green-100 dark:bg-green-900/50"
               : item.status === "success"
                 ? "bg-green-600"
                 : item.status === "failed"
@@ -249,8 +249,8 @@ export default function TourneeScreen() {
             onPress={() => router.push("/dechargement")}
             className={`flex-row items-center rounded-xl px-4 py-4 ${
               dechargement.status === "completed"
-                ? "bg-green-50 border border-green-200"
-                : "bg-orange-50 border border-orange-200"
+                ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700"
+                : "bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700"
             }`}
           >
             {/* Warehouse icon */}
