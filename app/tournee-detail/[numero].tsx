@@ -1,21 +1,21 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ChevronRight,
-  FileText,
-  HelpCircle,
-  Info,
-  MapPin,
-  Phone,
-  PlusCircle,
-  User,
+    ChevronRight,
+    FileText,
+    HelpCircle,
+    Info,
+    MapPin,
+    Phone,
+    PlusCircle,
+    User,
 } from "lucide-react-native";
 import { useMemo } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { Text } from "@/components/ui/text";
+import { useTournee } from "@/contexts/tournee-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
-import { useTournee } from "@/contexts/tournee-context";
 import { getPoint } from "@/lib/tournee-selectors";
 
 export default function TourneeDetailScreen() {
@@ -147,9 +147,7 @@ export default function TourneeDetailScreen() {
             {(point.missionRef || point.missionPartenaire) && (
               <Text className="text-sm text-muted-foreground">
                 ({point.missionRef}
-                {point.missionPartenaire
-                  ? ` - ${point.missionPartenaire}`
-                  : ""}
+                {point.missionPartenaire ? ` - ${point.missionPartenaire}` : ""}
                 )
               </Text>
             )}
@@ -159,7 +157,10 @@ export default function TourneeDetailScreen() {
           <View className="gap-3">
             {colisList.map((colis) => {
               const isCollected = colis.status === "collected";
-              const refusalReason = colis.status === "refused" ? (colis.refusalReason ?? null) : null;
+              const refusalReason =
+                colis.status === "refused"
+                  ? (colis.refusalReason ?? null)
+                  : null;
               const subtitle = [colis.marque, colis.modele, colis.poids]
                 .filter(Boolean)
                 .join(", ");
@@ -208,19 +209,17 @@ export default function TourneeDetailScreen() {
                         <FileText size={14} color="#9ca3af" />
                       </View>
                       {subtitle ? (
-                        <Text className="text-sm text-muted-foreground">{subtitle}</Text>
+                        <Text className="text-sm text-muted-foreground">
+                          {subtitle}
+                        </Text>
                       ) : null}
                     </View>
 
                     {/* Droite : statut + catégorie + chevron */}
                     <View className="flex-row items-center gap-2">
                       <View className="items-end gap-0.5">
-                        <View
-                          className={`px-3 py-1 rounded ${statusBg}`}
-                        >
-                          <Text
-                            className={`text-sm font-bold ${statusText}`}
-                          >
+                        <View className={`px-3 py-1 rounded ${statusBg}`}>
+                          <Text className={`text-sm font-bold ${statusText}`}>
                             {statusLabel}
                           </Text>
                         </View>
@@ -271,9 +270,7 @@ export default function TourneeDetailScreen() {
         <Pressable
           onPress={handleStart}
           className={`rounded-full py-3.5 items-center ${
-            point.status === "pending"
-              ? "bg-primary"
-              : "border border-border"
+            point.status === "pending" ? "bg-primary" : "border border-border"
           }`}
         >
           <Text
