@@ -105,7 +105,7 @@ export default function SmsScreen() {
                 <TextInput
                   className="rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground"
                   placeholder="+33 6 12 34 56 78"
-                  placeholderTextColor="hsl(240 3.8% 46.1%)"
+                  placeholderTextColor="hsl(240 5% 46%)"
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
@@ -126,7 +126,7 @@ export default function SmsScreen() {
                 <TextInput
                   className="rounded-lg border border-border bg-background px-4 py-3 text-base text-foreground"
                   placeholder="Votre message ici..."
-                  placeholderTextColor="hsl(240 3.8% 46.1%)"
+                  placeholderTextColor="hsl(240 5% 46%)"
                   value={message}
                   onChangeText={setMessage}
                   multiline

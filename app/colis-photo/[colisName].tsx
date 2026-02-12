@@ -6,6 +6,8 @@ import { Camera, Plus, ChevronDown, X as XIcon } from "lucide-react-native";
 import { useState, useCallback } from "react";
 
 import { Text } from "@/components/ui/text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { THEME } from "@/lib/theme";
 import { useTournee, REFUSAL_REASONS, type RefusalReason } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 import { analyzeObject, type ObjectAnalysis } from "@/lib/gemini";
@@ -35,9 +37,9 @@ function ProgressBar({
 
   return (
     <View className="flex-row items-center gap-3">
-      <Text className="text-sm text-gray-500 w-24">{label}</Text>
-      <Text className="text-sm font-medium text-gray-400 mr-1">:</Text>
-      <View className="flex-1 h-6 bg-gray-200 rounded-full overflow-hidden flex-row items-center">
+      <Text className="text-sm text-muted-foreground w-24">{label}</Text>
+      <Text className="text-sm font-medium text-muted-foreground mr-1">:</Text>
+      <View className="flex-1 h-6 bg-muted rounded-full overflow-hidden flex-row items-center">
         {score != null && (
           <View
             className="h-full rounded-full items-center justify-center"
@@ -53,7 +55,7 @@ function ProgressBar({
         )}
         {score == null && (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-xs text-gray-400">—</Text>
+            <Text className="text-xs text-muted-foreground">—</Text>
           </View>
         )}
       </View>
@@ -71,6 +73,8 @@ export default function ColisPhotoScreen() {
     numero: string;
   }>();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
   const { colisPhotos, colisAnalysis, colisRefusals, setColisPhoto, setColisAnalysis, setColisRefusal } = useTournee();
 
   const decodedName = decodeURIComponent(colisName ?? "");
@@ -157,12 +161,12 @@ export default function ColisPhotoScreen() {
   const headerTitle = colis?.type ?? decodedName;
 
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-background">
       <Stack.Screen
         options={{
           title: headerTitle,
-          headerStyle: { backgroundColor: "#6b6b6b" },
-          headerTintColor: "#ffffff",
+          headerStyle: { backgroundColor: theme.header },
+          headerTintColor: theme.headerForeground,
           headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           headerBackTitle: "",
         }}
@@ -175,7 +179,7 @@ export default function ColisPhotoScreen() {
         {/* ── Zone photo principale ──────────────────────────────── */}
         <Pressable onPress={takePhoto} className="mx-5 mt-5">
           {selectedPhoto ? (
-            <View className="relative rounded-2xl overflow-hidden bg-white">
+            <View className="relative rounded-2xl overflow-hidden bg-card">
               <Image
                 source={{ uri: selectedPhoto }}
                 style={{ width: "100%", height: 220, borderRadius: 16 }}
@@ -191,11 +195,11 @@ export default function ColisPhotoScreen() {
               )}
             </View>
           ) : (
-            <View className="h-52 bg-gray-200 rounded-2xl items-center justify-center">
+            <View className="h-52 bg-muted rounded-2xl items-center justify-center">
               <View className="items-center gap-1">
                 <View className="relative">
                   <Camera size={48} color="#666" />
-                  <View className="absolute -bottom-1 -right-2 bg-gray-200 rounded-full">
+                  <View className="absolute -bottom-1 -right-2 bg-muted rounded-full">
                     <Plus size={18} color="#666" />
                   </View>
                 </View>
@@ -209,7 +213,7 @@ export default function ColisPhotoScreen() {
           {/* Bouton ajouter */}
           <Pressable
             onPress={takePhoto}
-            className="h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white"
+            className="h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-border bg-card"
           >
             <Plus size={20} color="#9ca3af" />
           </Pressable>
@@ -233,11 +237,11 @@ export default function ColisPhotoScreen() {
         </View>
 
         {/* ── Séparateur ─────────────────────────────────────────── */}
-        <View className="h-px bg-gray-300 mx-5 my-4" />
+        <View className="h-px bg-border mx-5 my-4" />
 
         {/* ── Infos de l'objet ───────────────────────────────────── */}
         <View
-          className="mx-5 bg-white rounded-2xl p-5 gap-4"
+          className="mx-5 bg-card rounded-2xl p-5 gap-4"
           style={{
             shadowColor: "#000",
             shadowOpacity: 0.05,
@@ -248,18 +252,18 @@ export default function ColisPhotoScreen() {
         >
           {/* Catégorie */}
           <View className="flex-row items-center gap-3">
-            <Text className="text-sm text-gray-500 w-24">Catégorie</Text>
-            <Text className="text-sm font-medium text-gray-400 mr-1">:</Text>
-            <Text className="text-sm font-bold text-gray-900 flex-1">
+            <Text className="text-sm text-muted-foreground w-24">Catégorie</Text>
+            <Text className="text-sm font-medium text-muted-foreground mr-1">:</Text>
+            <Text className="text-sm font-bold text-foreground flex-1">
               {colis?.type ?? decodedName}
             </Text>
           </View>
 
           {/* Marque */}
           <View className="flex-row items-center gap-3">
-            <Text className="text-sm text-gray-500 w-24">Marque</Text>
-            <Text className="text-sm font-medium text-gray-400 mr-1">:</Text>
-            <Text className="text-sm font-bold text-gray-900 flex-1">
+            <Text className="text-sm text-muted-foreground w-24">Marque</Text>
+            <Text className="text-sm font-medium text-muted-foreground mr-1">:</Text>
+            <Text className="text-sm font-bold text-foreground flex-1">
               {colis?.marque
                 ? `${colis.marque}${colis.modele ? ` ${colis.modele}` : ""}`
                 : "—"}
@@ -281,24 +285,24 @@ export default function ColisPhotoScreen() {
           />
 
           {/* Séparateur */}
-          <View className="h-px bg-gray-200" />
+          <View className="h-px bg-border" />
 
           {/* Fonctionnel */}
           <View className="flex-row items-center gap-3">
-            <Text className="text-sm text-gray-500 w-24">Fonctionnel</Text>
-            <Text className="text-sm font-medium text-gray-400 mr-1">:</Text>
+            <Text className="text-sm text-muted-foreground w-24">Fonctionnel</Text>
+            <Text className="text-sm font-medium text-muted-foreground mr-1">:</Text>
             <View className="flex-row gap-2">
               <Pressable
                 onPress={() => setFonctionnel(true)}
                 className={`px-5 py-1.5 rounded-full border ${
                   fonctionnel === true
                     ? "bg-green-500 border-green-500"
-                    : "bg-white border-gray-300"
+                    : "bg-card border-border"
                 }`}
               >
                 <Text
                   className={`text-sm font-medium ${
-                    fonctionnel === true ? "text-white" : "text-gray-700"
+                    fonctionnel === true ? "text-white" : "text-foreground"
                   }`}
                 >
                   Oui
@@ -309,12 +313,12 @@ export default function ColisPhotoScreen() {
                 className={`px-5 py-1.5 rounded-full border ${
                   fonctionnel === false
                     ? "bg-red-500 border-red-500"
-                    : "bg-white border-gray-300"
+                    : "bg-card border-border"
                 }`}
               >
                 <Text
                   className={`text-sm font-medium ${
-                    fonctionnel === false ? "text-white" : "text-gray-700"
+                    fonctionnel === false ? "text-white" : "text-foreground"
                   }`}
                 >
                   Non
@@ -338,15 +342,15 @@ export default function ColisPhotoScreen() {
             elevation: 4,
           }}
         >
-          <View className="bg-white rounded-xl px-4 py-3 items-center">
+          <View className="bg-card rounded-xl px-4 py-3 items-center">
             <Text className="text-sm font-bold text-red-600">Non collecté</Text>
-            <Text className="text-xs text-gray-500 mt-0.5">{refusalReason}</Text>
+            <Text className="text-xs text-muted-foreground mt-0.5">{refusalReason}</Text>
           </View>
         </View>
       ) : (
         /* Boutons normaux */
         <View
-          className="flex-row gap-4 bg-white border-t border-gray-200 px-5 pb-8 pt-4"
+          className="flex-row gap-4 bg-card border-t border-border px-5 pb-8 pt-4"
           style={{
             shadowColor: "#000",
             shadowOpacity: 0.06,
@@ -357,9 +361,9 @@ export default function ColisPhotoScreen() {
         >
           <Pressable
             onPress={handleNotCollect}
-            className="flex-1 py-3.5 items-center rounded-full border border-gray-300 bg-white active:bg-gray-100"
+            className="flex-1 py-3.5 items-center rounded-full border border-border bg-card active:bg-accent"
           >
-            <Text className="text-sm font-semibold text-gray-700">
+            <Text className="text-sm font-semibold text-foreground">
               Non collecter
             </Text>
           </Pressable>
@@ -367,8 +371,8 @@ export default function ColisPhotoScreen() {
             onPress={handleCollect}
             className={`flex-1 py-3.5 items-center rounded-full active:opacity-80 ${
               photos.length > 0
-                ? "bg-gray-700"
-                : "bg-gray-300"
+                ? "bg-primary"
+                : "bg-muted"
             }`}
             disabled={photos.length === 0}
           >
@@ -389,12 +393,12 @@ export default function ColisPhotoScreen() {
           onPress={() => setShowReasons(false)}
         >
           <Pressable
-            className="bg-white rounded-t-3xl px-5 pb-10 pt-5"
+            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
             onPress={() => {}}
           >
             {/* Header du dropdown */}
             <View className="flex-row items-center justify-between mb-5">
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-foreground">
                 Spécifier la raison
               </Text>
               <Pressable
@@ -411,10 +415,10 @@ export default function ColisPhotoScreen() {
                 <Pressable
                   key={reason}
                   onPress={() => handleSelectReason(reason)}
-                  className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-gray-50 active:bg-gray-100 border border-gray-200"
+                  className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-secondary active:bg-accent border border-border"
                 >
                   <ChevronDown size={16} color="#9ca3af" style={{ transform: [{ rotate: "-90deg" }] }} />
-                  <Text className="text-base text-gray-800 flex-1">
+                  <Text className="text-base text-foreground flex-1">
                     {reason}
                   </Text>
                 </Pressable>

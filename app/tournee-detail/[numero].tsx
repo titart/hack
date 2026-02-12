@@ -12,12 +12,16 @@ import {
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { Text } from "@/components/ui/text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { THEME } from "@/lib/theme";
 import { useTournee } from "@/contexts/tournee-context";
 import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
 
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
   const { colisPhotos, colisRefusals } = useTournee();
 
   const numInt = Number(numero);
@@ -49,17 +53,17 @@ export default function TourneeDetailScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-background">
       <Stack.Screen
         options={{
           title: headerTitle,
-          headerStyle: { backgroundColor: "#3a3a3a" },
-          headerTintColor: "#ffffff",
+          headerStyle: { backgroundColor: theme.header },
+          headerTintColor: theme.headerForeground,
           headerTitleStyle: { fontSize: 16, fontWeight: "600" },
           headerBackTitle: "",
           headerRight: () => (
             <Pressable className="p-1">
-              <HelpCircle size={24} color="#ffffff" />
+              <HelpCircle size={24} color={theme.headerForeground} />
             </Pressable>
           ),
         }}
@@ -72,7 +76,7 @@ export default function TourneeDetailScreen() {
       >
         {/* ── Info client ─────────────────────────────────────── */}
         <View
-          className="bg-white rounded-xl p-5 gap-4"
+          className="bg-card rounded-xl p-5 gap-4"
           style={{
             shadowColor: "#000",
             shadowOpacity: 0.05,
@@ -81,12 +85,12 @@ export default function TourneeDetailScreen() {
             elevation: 2,
           }}
         >
-          <Text className="text-lg font-bold text-gray-900">Info client</Text>
+          <Text className="text-lg font-bold text-foreground">Info client</Text>
 
           {/* Nom client */}
           <View className="flex-row items-center gap-3">
             <User size={18} color="#6b7280" />
-            <Text className="text-base text-gray-900">
+            <Text className="text-base text-foreground">
               {adresse.clientName ?? "Client"}
             </Text>
           </View>
@@ -94,7 +98,7 @@ export default function TourneeDetailScreen() {
           {/* Adresse */}
           <Pressable onPress={openMaps} className="flex-row items-start gap-3">
             <MapPin size={18} color="#6b7280" />
-            <Text className="text-base text-gray-900 underline flex-1">
+            <Text className="text-base text-foreground underline flex-1">
               {adresse.adresse}
             </Text>
           </Pressable>
@@ -106,7 +110,7 @@ export default function TourneeDetailScreen() {
               className="flex-row items-center gap-3"
             >
               <Phone size={18} color="#6b7280" />
-              <Text className="text-base text-gray-900">{adresse.phone}</Text>
+              <Text className="text-base text-foreground">{adresse.phone}</Text>
             </Pressable>
           )}
 
@@ -116,7 +120,7 @@ export default function TourneeDetailScreen() {
               <View className="pt-0.5">
                 <Info size={18} color="#6b7280" />
               </View>
-              <Text className="text-sm text-gray-500 flex-1 leading-5">
+              <Text className="text-sm text-muted-foreground flex-1 leading-5">
                 {adresse.notes}
               </Text>
             </View>
@@ -127,11 +131,11 @@ export default function TourneeDetailScreen() {
         <View className="gap-4">
           {/* Titre mission */}
           <View className="flex-row items-baseline gap-2 flex-wrap">
-            <Text className="text-lg font-bold text-gray-900">
+            <Text className="text-lg font-bold text-foreground">
               Mission : {adresse.missionType ?? "Collecte"}
             </Text>
             {(adresse.missionRef || adresse.missionPartenaire) && (
-              <Text className="text-sm text-gray-400">
+              <Text className="text-sm text-muted-foreground">
                 ({adresse.missionRef}
                 {adresse.missionPartenaire
                   ? ` - ${adresse.missionPartenaire}`
@@ -175,7 +179,7 @@ export default function TourneeDetailScreen() {
                       `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
                     )
                   }
-                  className="bg-white rounded-xl border border-gray-200 px-4 py-3"
+                  className="bg-card rounded-xl border border-border px-4 py-3"
                   style={{
                     shadowColor: "#000",
                     shadowOpacity: 0.03,
@@ -188,13 +192,13 @@ export default function TourneeDetailScreen() {
                     {/* Gauche : nom appareil + infos */}
                     <View className="flex-1 gap-0.5">
                       <View className="flex-row items-center gap-2">
-                        <Text className="text-base font-medium text-gray-900">
+                        <Text className="text-base font-medium text-foreground">
                           {colis.type ?? colis.name}
                         </Text>
                         <FileText size={14} color="#9ca3af" />
                       </View>
                       {subtitle ? (
-                        <Text className="text-sm text-gray-400">{subtitle}</Text>
+                        <Text className="text-sm text-muted-foreground">{subtitle}</Text>
                       ) : null}
                     </View>
 
@@ -236,7 +240,7 @@ export default function TourneeDetailScreen() {
           {/* Ajouter un appareil */}
           <Pressable className="flex-row items-center justify-center gap-2 py-2">
             <PlusCircle size={20} color="#6b7280" />
-            <Text className="text-base text-gray-600 underline">
+            <Text className="text-base text-muted-foreground underline">
               Ajouter un appareil
             </Text>
           </Pressable>
@@ -245,7 +249,7 @@ export default function TourneeDetailScreen() {
 
       {/* ── Bouton Démarrer (fixé en bas) ─────────────────────── */}
       <View
-        className="bg-white border-t border-gray-200 px-6 pb-8 pt-4"
+        className="bg-card border-t border-border px-6 pb-8 pt-4"
         style={{
           shadowColor: "#000",
           shadowOpacity: 0.05,
@@ -254,8 +258,8 @@ export default function TourneeDetailScreen() {
           elevation: 4,
         }}
       >
-        <Pressable className="border border-gray-300 rounded-full py-3.5 items-center">
-          <Text className="text-base font-medium text-gray-700">Démarrer</Text>
+        <Pressable className="border border-border rounded-full py-3.5 items-center">
+          <Text className="text-base font-medium text-foreground">Démarrer</Text>
         </Pressable>
       </View>
     </View>

@@ -52,14 +52,14 @@ interface SegmentRoute {
 const MARKER_COLORS: Record<string, string> = {
   success: "#22c55e",
   fail: "#ef4444",
-  active: "#ec4899",
-  default: "#3b82f6",
+  active: "#FF2EAF",  // brand secondary
+  default: "#5269FF", // brand primary
 };
 
 const SEGMENT_COLORS = {
   done: "#22c55e",    // vert
-  active: "#ec4899",  // rose
-  upcoming: "#3b82f6", // bleu
+  active: "#FF2EAF",  // brand secondary
+  upcoming: "#5269FF", // brand primary
 };
 
 const TOTAL_ANIMATION_DURATION = 3000;
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   marker: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: "#5269FF",
     borderRadius: 16,
     width: 32,
     height: 32,

@@ -54,7 +54,7 @@ export default function TourneeScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>
       {/* Header */}
-      <View className="bg-neutral-600 px-4 py-3">
+      <View className="bg-header px-4 py-3">
         <View className="flex-row items-center justify-between">
           <Text className="text-white text-xl font-bold">
             {TOURNEE_INFO.name} - {nbPoints} Points
@@ -64,7 +64,7 @@ export default function TourneeScreen() {
             {TOURNEE_INFO.heureFin}
           </Text>
         </View>
-        <View className="h-px bg-white/20 my-2" />
+        <View className="h-px bg-header-foreground/20 my-2" />
         <View className="flex-row items-center justify-between">
           <Text className="text-white font-bold text-sm">
             {totalColis} Colis - {TOURNEE_INFO.totalPoids}
@@ -118,11 +118,11 @@ export default function TourneeScreen() {
               onLongPress={() => {
                 router.push(`/tournee-detail/${item.numero}`);
               }}
-              className="flex-row items-center bg-neutral-200 rounded-xl px-4 py-4"
+              className="flex-row items-center bg-secondary rounded-xl px-4 py-4"
             >
               {/* Direction icon */}
               <View
-                className="h-10 w-10 items-center justify-center rounded-lg bg-neutral-500 mr-3"
+                className="h-10 w-10 items-center justify-center rounded-lg bg-primary mr-3"
                 style={{ transform: [{ rotate: "45deg" }] }}
               >
                 <Navigation
@@ -138,12 +138,12 @@ export default function TourneeScreen() {
                   <Text className="font-bold text-base">
                     P{item.numero} - {item.creneauHoraire}
                   </Text>
-                  <Text className="text-neutral-500 text-sm">
+                  <Text className="text-muted-foreground text-sm">
                     {item.ville}
                     {postalCode ? `, ${postalCode}` : ""}
                   </Text>
                 </View>
-                <Text className="text-neutral-600 text-sm mt-0.5">
+                <Text className="text-muted-foreground text-sm mt-0.5">
                   {item.missionType ?? "Collecte"} ({item.colis.length})
                 </Text>
               </View>
