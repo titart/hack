@@ -1,17 +1,19 @@
-import { useState } from "react";
 import { Link } from "expo-router";
+import { Check, Truck } from "lucide-react-native";
+import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Check, Truck } from "lucide-react-native";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { Logo } from "@/components/logo";
 
 const CHECKLIST_ITEMS = [
   { id: "etiquettes", label: "J'ai récupéré mes étiquettes" },
   { id: "bons", label: "J'ai les bons de livraison" },
   { id: "epi", label: "J'ai mes EPI" },
+  { id: "gourde", label: "J'ai pris une gourde" },
+  { id: "pipi", label: "J'ai fait pipi" },
 ] as const;
 
 export default function HomeScreen() {
@@ -63,7 +65,9 @@ export default function HomeScreen() {
                     : "border-muted-foreground/40 bg-background"
                 }`}
               >
-                {checked[item.id] && <Check size={16} color="white" strokeWidth={3} />}
+                {checked[item.id] && (
+                  <Check size={16} color="white" strokeWidth={3} />
+                )}
               </View>
               <Text
                 className={`flex-1 text-base ${
