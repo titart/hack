@@ -1,13 +1,20 @@
 import { useRouter } from "expo-router";
-import { ChevronRight, Navigation, Package, Truck } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { ChevronRight, Navigation, Package, Truck, Warehouse } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MapTournee from "@/components/map-tournee";
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
-import { getOrderedPoints, getResultsMap } from "@/lib/tournee-selectors";
+import {
+  getOrderedPoints,
+  getResultsMap,
+  isAllPointsDone,
+  getDechargement,
+  getAllCollectedColis,
+  getDechargementScannedCount,
+} from "@/lib/tournee-selectors";
 
 const TOURNEE_INFO = {
   name: "T01",
@@ -29,10 +36,21 @@ function extractPostalCode(adresse: string): string {
 
 export default function TourneeScreen() {
   const router = useRouter();
-  const { state, swapPoints } = useTournee();
+  const { state, swapPoints, unlockDechargement } = useTournee();
 
   const orderedPoints = useMemo(() => getOrderedPoints(state), [state]);
   const results = useMemo(() => getResultsMap(state), [state]);
+  const allDone = useMemo(() => isAllPointsDone(state), [state]);
+  const dechargement = useMemo(() => getDechargement(state), [state]);
+  const collectedColis = useMemo(() => getAllCollectedColis(state), [state]);
+  const scannedCount = useMemo(() => getDechargementScannedCount(state), [state]);
+
+  // Déverrouiller le déchargement automatiquement quand tous les points sont terminés
+  useEffect(() => {
+    if (allDone && dechargement.status === "locked") {
+      unlockDechargement();
+    }
+  }, [allDone, dechargement.status, unlockDechargement]);
 
   // Convertir PointLivraisonState[] vers le format attendu par MapTournee
   const orderedAdresses = useMemo(
@@ -165,6 +183,48 @@ export default function TourneeScreen() {
             </Pressable>
           );
         })}
+
+        {/* ── Point de déchargement ──────────────────────────────── */}
+        {dechargement.status !== "locked" && (
+          <Pressable
+            onPress={() => router.push("/dechargement")}
+            className={`flex-row items-center rounded-xl px-4 py-4 ${
+              dechargement.status === "completed"
+                ? "bg-green-50 border border-green-200"
+                : "bg-orange-50 border border-orange-200"
+            }`}
+          >
+            {/* Warehouse icon */}
+            <View
+              className={`h-10 w-10 items-center justify-center rounded-lg mr-3 ${
+                dechargement.status === "completed" ? "bg-green-500" : "bg-orange-500"
+              }`}
+            >
+              <Warehouse size={18} color="#ffffff" />
+            </View>
+
+            {/* Content */}
+            <View className="flex-1">
+              <View className="flex-row items-baseline gap-2">
+                <Text className="font-bold text-base">
+                  Déchargement - {dechargement.creneauHoraire}
+                </Text>
+                <Text className="text-muted-foreground text-sm">
+                  {dechargement.ville}
+                </Text>
+              </View>
+              <Text className="text-muted-foreground text-sm mt-0.5">
+                {collectedColis.length} colis collectés
+                {scannedCount > 0
+                  ? ` · ${scannedCount}/${collectedColis.length} scannés`
+                  : ""}
+              </Text>
+            </View>
+
+            {/* Chevron */}
+            <ChevronRight size={20} color="#9ca3af" />
+          </Pressable>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

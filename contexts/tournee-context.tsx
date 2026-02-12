@@ -39,6 +39,12 @@ interface TourneeContextType {
   swapPoints: (numeroA: number, numeroB: number) => void;
   completeTournee: () => void;
   reset: () => void;
+
+  // --- Déchargement ---
+  unlockDechargement: () => void;
+  startDechargement: () => void;
+  scanColisDechargement: (colisName: string, pointNumero: number) => void;
+  completeDechargement: () => void;
 }
 
 const TourneeContext = createContext<TourneeContextType | null>(null);
@@ -109,6 +115,27 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "RESET", adresses: ADRESSES_TOURNEE });
   }, []);
 
+  // --- Déchargement ---
+
+  const unlockDechargement = useCallback(() => {
+    dispatch({ type: "UNLOCK_DECHARGEMENT" });
+  }, []);
+
+  const startDechargement = useCallback(() => {
+    dispatch({ type: "START_DECHARGEMENT" });
+  }, []);
+
+  const scanColisDechargement = useCallback(
+    (colisName: string, pointNumero: number) => {
+      dispatch({ type: "SCAN_COLIS_DECHARGEMENT", colisName, pointNumero });
+    },
+    [],
+  );
+
+  const completeDechargement = useCallback(() => {
+    dispatch({ type: "COMPLETE_DECHARGEMENT" });
+  }, []);
+
   return (
     <TourneeContext.Provider
       value={{
@@ -125,6 +152,10 @@ export function TourneeProvider({ children }: { children: ReactNode }) {
         swapPoints,
         completeTournee,
         reset,
+        unlockDechargement,
+        startDechargement,
+        scanColisDechargement,
+        completeDechargement,
       }}
     >
       {children}

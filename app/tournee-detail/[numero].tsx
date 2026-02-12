@@ -15,6 +15,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 import {
   Keyboard,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -123,6 +124,14 @@ export default function TourneeDetailScreen() {
 
   // Colis ordonnés
   const colisList = point.colisOrder.map((name) => point.colis[name]);
+
+  // Le point doit être démarré pour pouvoir interagir avec les colis
+  const isStarted = point.status === "started";
+
+  // Tous les colis sont traités (collecté ou refusé) ?
+  const allColisDone = colisList.every(
+    (c) => c.status === "collected" || c.status === "refused",
+  );
 
   return (
     <View className="flex-1 bg-background">
@@ -247,11 +256,13 @@ export default function TourneeDetailScreen() {
               return (
                 <Pressable
                   key={colis.name}
-                  onPress={() =>
+                  onPress={() => {
+                    if (!isStarted) return;
                     router.push(
                       `/colis-photo/${encodeURIComponent(colis.name)}?numero=${numInt}`,
-                    )
-                  }
+                    );
+                  }}
+                  disabled={!isStarted}
                   className="bg-card rounded-xl border border-border px-4 py-3"
                   style={{
                     shadowColor: "#000",
@@ -259,6 +270,7 @@ export default function TourneeDetailScreen() {
                     shadowRadius: 2,
                     shadowOffset: { width: 0, height: 1 },
                     elevation: 1,
+                    opacity: isStarted ? 1 : 0.5,
                   }}
                 >
                   <View className="flex-row items-center">
@@ -330,19 +342,30 @@ export default function TourneeDetailScreen() {
         }}
       >
         {point.status === "started" ? (
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => setShowFailReasons(true)}
-              className="flex-1 rounded-full py-3.5 items-center bg-red-500"
-            >
-              <Text className="text-base font-medium text-white">Échoué</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setShowCodeModal(true)}
-              className="flex-1 rounded-full py-3.5 items-center bg-green-500"
-            >
-              <Text className="text-base font-medium text-white">Succès</Text>
-            </Pressable>
+          <View className="gap-3">
+            {/* Message si colis pas tous traités */}
+            {!allColisDone && (
+              <Text className="text-xs text-center text-muted-foreground">
+                Tous les colis doivent être collectés ou refusés avant de terminer
+              </Text>
+            )}
+            <View className="flex-row gap-3">
+              <Pressable
+                onPress={() => setShowFailReasons(true)}
+                className="flex-1 rounded-full py-3.5 items-center bg-red-500"
+              >
+                <Text className="text-base font-medium text-white">Échoué</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowCodeModal(true)}
+                disabled={!allColisDone}
+                className={`flex-1 rounded-full py-3.5 items-center ${
+                  allColisDone ? "bg-green-500" : "bg-green-500/40"
+                }`}
+              >
+                <Text className="text-base font-medium text-white">Succès</Text>
+              </Pressable>
+            </View>
           </View>
         ) : point.status === "success" || point.status === "failed" ? (
           <View className="flex-row gap-3 items-center">
@@ -383,33 +406,38 @@ export default function TourneeDetailScreen() {
           setDigits(["", "", "", ""]);
         }}
       >
-        <Pressable
-          className="flex-1 bg-black/50"
-          onPress={() => {
-            setShowCodeModal(false);
-            setDigits(["", "", "", ""]);
-          }}
-        />
-        <View className="bg-card rounded-t-3xl px-6 pt-6 pb-10 gap-6">
-          <Text className="text-lg font-bold text-foreground">Valider</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          className="flex-1"
+        >
+          <Pressable
+            className="flex-1 bg-black/50"
+            onPress={() => {
+              setShowCodeModal(false);
+              setDigits(["", "", "", ""]);
+            }}
+          />
+          <View className="bg-card rounded-t-3xl px-6 pt-6 pb-10 gap-6">
+            <Text className="text-lg font-bold text-foreground">Valider</Text>
 
-          <View className="flex-row justify-center gap-4">
-            {digits.map((digit, i) => (
-              <TextInput
-                key={i}
-                ref={digitRefs[i]}
-                value={digit}
-                onChangeText={(t) => handleDigitChange(t, i)}
-                onKeyPress={(e) => handleDigitKeyPress(e, i)}
-                keyboardType="number-pad"
-                maxLength={1}
-                autoFocus={i === 0}
-                className="w-16 h-20 border-2 border-border rounded-xl bg-muted/30 text-center text-3xl font-bold text-foreground"
-                selectTextOnFocus
-              />
-            ))}
+            <View className="flex-row justify-center gap-4">
+              {digits.map((digit, i) => (
+                <TextInput
+                  key={i}
+                  ref={digitRefs[i]}
+                  value={digit}
+                  onChangeText={(t) => handleDigitChange(t, i)}
+                  onKeyPress={(e) => handleDigitKeyPress(e, i)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  autoFocus={i === 0}
+                  className="w-16 h-20 border-2 border-border rounded-xl bg-muted/30 text-center text-3xl font-bold text-foreground"
+                  selectTextOnFocus
+                />
+              ))}
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── Bottom sheet raisons d'échec ──────────────────── */}

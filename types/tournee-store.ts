@@ -85,6 +85,39 @@ export interface PointLivraisonState {
 }
 
 // ---------------------------------------------------------------------------
+// Déchargement
+// ---------------------------------------------------------------------------
+
+export type DechargementStatus = "locked" | "pending" | "started" | "completed";
+export type DechargementDestination = "benne" | "recyclage";
+
+export interface DechargementColisState {
+  /** Nom du colis (clé dans le point d'origine) */
+  colisName: string;
+  /** Numéro du point d'origine */
+  pointNumero: number;
+  /** Destination déterminée par le score moyen */
+  destination: DechargementDestination;
+  /** Score moyen (conditionScore + recyclingScore) / 2 */
+  averageScore: number;
+  /** Date/heure du scan */
+  scannedAt: string;
+}
+
+export interface DechargementState {
+  status: DechargementStatus;
+  startedAt?: string;
+  completedAt?: string;
+  /** Adresse du point de déchargement */
+  adresse: string;
+  ville: string;
+  creneauHoraire: string;
+  notes: string;
+  /** Colis scannés (indexés par "pointNumero-colisName") */
+  scannedColis: Record<string, DechargementColisState>;
+}
+
+// ---------------------------------------------------------------------------
 // State racine de la tournée
 // ---------------------------------------------------------------------------
 
@@ -96,6 +129,8 @@ export interface TourneeState {
   points: Record<number, PointLivraisonState>;
   /** Ordre des points (pour l'affichage / swap) */
   pointsOrder: number[];
+  /** État du déchargement */
+  dechargement: DechargementState;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +159,16 @@ export type TourneeAction =
   | { type: "RESET_POINT"; numero: number }
   | { type: "SWAP_POINTS"; numeroA: number; numeroB: number }
   | { type: "COMPLETE_TOURNEE" }
-  | { type: "RESET"; adresses: AdresseTournee[] };
+  | { type: "RESET"; adresses: AdresseTournee[] }
+  // --- Déchargement ---
+  | { type: "UNLOCK_DECHARGEMENT" }
+  | { type: "START_DECHARGEMENT" }
+  | {
+      type: "SCAN_COLIS_DECHARGEMENT";
+      colisName: string;
+      pointNumero: number;
+    }
+  | { type: "COMPLETE_DECHARGEMENT" };
 
 // ---------------------------------------------------------------------------
 // Initialisation depuis les données statiques
@@ -185,6 +229,14 @@ export function initTourneeState(adresses: AdresseTournee[]): TourneeState {
     status: "pending",
     points,
     pointsOrder,
+    dechargement: {
+      status: "locked",
+      adresse: "12 rue des crabes, Lyon 69000",
+      ville: "Villeurbanne",
+      creneauHoraire: "16h00",
+      notes: "Quai n°3 - Code 1822",
+      scannedColis: {},
+    },
   };
 }
 
@@ -355,6 +407,70 @@ export function tourneeReducer(state: TourneeState, action: TourneeAction): Tour
         ...state,
         status: "completed",
         completedAt: new Date().toISOString(),
+      };
+
+    // --- Déchargement ---
+
+    case "UNLOCK_DECHARGEMENT":
+      return {
+        ...state,
+        dechargement: {
+          ...state.dechargement,
+          status: "pending",
+        },
+      };
+
+    case "START_DECHARGEMENT":
+      return {
+        ...state,
+        dechargement: {
+          ...state.dechargement,
+          status: "started",
+          startedAt: new Date().toISOString(),
+        },
+      };
+
+    case "SCAN_COLIS_DECHARGEMENT": {
+      const srcPoint = state.points[action.pointNumero];
+      if (!srcPoint) return state;
+      const srcColis = srcPoint.colis[action.colisName];
+      if (!srcColis || srcColis.status !== "collected") return state;
+
+      const key = `${action.pointNumero}-${action.colisName}`;
+      // Ne pas rescanner un colis déjà scanné
+      if (state.dechargement.scannedColis[key]) return state;
+
+      const recycling = srcColis.analysis?.recyclingScore ?? 5;
+      const condition = srcColis.analysis?.conditionScore ?? 5;
+      const avg = (recycling + condition) / 2;
+      const destination: DechargementDestination = avg >= 5 ? "recyclage" : "benne";
+
+      return {
+        ...state,
+        dechargement: {
+          ...state.dechargement,
+          scannedColis: {
+            ...state.dechargement.scannedColis,
+            [key]: {
+              colisName: action.colisName,
+              pointNumero: action.pointNumero,
+              destination,
+              averageScore: Math.round(avg * 10) / 10,
+              scannedAt: new Date().toISOString(),
+            },
+          },
+        },
+      };
+    }
+
+    case "COMPLETE_DECHARGEMENT":
+      return {
+        ...state,
+        dechargement: {
+          ...state.dechargement,
+          status: "completed",
+          completedAt: new Date().toISOString(),
+        },
       };
 
     case "RESET":

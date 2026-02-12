@@ -53,6 +53,13 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="dechargement"
+            options={{
+              title: "Déchargement",
+              headerBackTitle: "Retour",
+            }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />
