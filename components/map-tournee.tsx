@@ -277,6 +277,7 @@ export default function MapTournee({ adresses, activeNumero, results, onMarkerPr
                 latitude: item.latitude,
                 longitude: item.longitude,
               }}
+              zIndex={isActive ? 100 : item.numero}
               title={`${item.numero}. ${item.adresse}`}
               onPress={() => onMarkerPress?.(item.numero)}
             >
