@@ -1,19 +1,28 @@
 import { useRouter } from "expo-router";
-import { ChevronRight, Navigation, Package, Truck, Warehouse } from "lucide-react-native";
+import {
+  AlertTriangle,
+  ChevronRight,
+  Navigation,
+  Package,
+  Truck,
+  Warehouse,
+  X,
+  Zap,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MapTournee from "@/components/map-tournee";
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
 import {
+  getAllCollectedColis,
+  getDechargement,
+  getDechargementScannedCount,
   getOrderedPoints,
   getResultsMap,
   isAllPointsDone,
-  getDechargement,
-  getAllCollectedColis,
-  getDechargementScannedCount,
 } from "@/lib/tournee-selectors";
 
 const TOURNEE_INFO = {
@@ -43,7 +52,10 @@ export default function TourneeScreen() {
   const allDone = useMemo(() => isAllPointsDone(state), [state]);
   const dechargement = useMemo(() => getDechargement(state), [state]);
   const collectedColis = useMemo(() => getAllCollectedColis(state), [state]);
-  const scannedCount = useMemo(() => getDechargementScannedCount(state), [state]);
+  const scannedCount = useMemo(
+    () => getDechargementScannedCount(state),
+    [state],
+  );
 
   // Déverrouiller le déchargement automatiquement quand tous les points sont terminés
   useEffect(() => {
@@ -63,6 +75,29 @@ export default function TourneeScreen() {
   );
 
   const [activeNumero, setActiveNumero] = useState(state.pointsOrder[0]);
+  const [showOptimizationBanner, setShowOptimizationBanner] = useState(false);
+  const [showDecheterieSheet, setShowDecheterieSheet] = useState(false);
+
+  // Afficher le banner de réorganisation quand le point 3 passe en "failed"
+  const point3Status = state.points[3]?.status;
+  useEffect(() => {
+    if (point3Status === "failed") {
+      setShowOptimizationBanner(true);
+    }
+  }, [point3Status]);
+
+  // Afficher la bottom sheet déchèterie quand le déchargement est déverrouillé
+  const dechargementStatus = dechargement.status;
+  useEffect(() => {
+    if (dechargementStatus === "pending") {
+      setShowDecheterieSheet(true);
+    }
+  }, [dechargementStatus]);
+
+  const handleAcceptOptimization = useCallback(() => {
+    swapPoints(4, 5);
+    setShowOptimizationBanner(false);
+  }, [swapPoints]);
 
   const handleSwap8and9 = useCallback(() => {
     swapPoints(8, 9);
@@ -158,7 +193,9 @@ export default function TourneeScreen() {
                 className={`flex-row items-center rounded-xl px-4 py-4 ${dechBg}`}
               >
                 {/* Warehouse icon */}
-                <View className={`h-10 w-10 items-center justify-center rounded-lg ${iconBg} mr-3`}>
+                <View
+                  className={`h-10 w-10 items-center justify-center rounded-lg ${iconBg} mr-3`}
+                >
                   <Warehouse size={18} color="#ffffff" />
                 </View>
 
@@ -198,7 +235,8 @@ export default function TourneeScreen() {
                 : item.status === "failed"
                   ? "bg-red-500"
                   : "bg-secondary";
-          const lightText = item.status === "success" || item.status === "failed";
+          const lightText =
+            item.status === "success" || item.status === "failed";
 
           return (
             <Pressable
@@ -224,21 +262,30 @@ export default function TourneeScreen() {
               {/* Content */}
               <View className="flex-1">
                 <View className="flex-row items-baseline gap-2">
-                  <Text className={`font-bold text-base ${lightText ? "text-white" : ""}`}>
+                  <Text
+                    className={`font-bold text-base ${lightText ? "text-white" : ""}`}
+                  >
                     P{item.numero} - {item.creneauHoraire}
                   </Text>
-                  <Text className={`text-sm ${lightText ? "text-white/70" : "text-muted-foreground"}`}>
+                  <Text
+                    className={`text-sm ${lightText ? "text-white/70" : "text-muted-foreground"}`}
+                  >
                     {item.ville}
                     {postalCode ? `, ${postalCode}` : ""}
                   </Text>
                 </View>
-                <Text className={`text-sm mt-0.5 ${lightText ? "text-white/70" : "text-muted-foreground"}`}>
+                <Text
+                  className={`text-sm mt-0.5 ${lightText ? "text-white/70" : "text-muted-foreground"}`}
+                >
                   {item.missionType ?? "Collecte"} ({item.colis.length})
                 </Text>
               </View>
 
               {/* Chevron */}
-              <ChevronRight size={20} color={lightText ? "#ffffff" : "#9ca3af"} />
+              <ChevronRight
+                size={20}
+                color={lightText ? "#ffffff" : "#9ca3af"}
+              />
             </Pressable>
           );
         })}
@@ -256,7 +303,9 @@ export default function TourneeScreen() {
             {/* Warehouse icon */}
             <View
               className={`h-10 w-10 items-center justify-center rounded-lg mr-3 ${
-                dechargement.status === "completed" ? "bg-green-500" : "bg-orange-500"
+                dechargement.status === "completed"
+                  ? "bg-green-500"
+                  : "bg-orange-500"
               }`}
             >
               <Warehouse size={18} color="#ffffff" />
@@ -266,7 +315,7 @@ export default function TourneeScreen() {
             <View className="flex-1">
               <View className="flex-row items-baseline gap-2">
                 <Text className="font-bold text-base">
-                  Déchargement - {dechargement.creneauHoraire}
+                  Dechetterie - {dechargement.creneauHoraire}
                 </Text>
                 <Text className="text-muted-foreground text-sm">
                   {dechargement.ville}
@@ -285,6 +334,108 @@ export default function TourneeScreen() {
           </Pressable>
         )}
       </ScrollView>
+
+      {/* ── Bottom sheet ajout étape déchèterie ───────────────── */}
+      <Modal
+        visible={showDecheterieSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDecheterieSheet(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/40 justify-end"
+          onPress={() => setShowDecheterieSheet(false)}
+        >
+          <Pressable
+            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
+            onPress={() => {}}
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className="text-lg font-bold text-foreground">
+                Étape supplémentaire
+              </Text>
+              <Pressable
+                onPress={() => setShowDecheterieSheet(false)}
+                className="p-1"
+              >
+                <X size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+
+            {/* Message */}
+            <View className="gap-2">
+              <View className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-secondary border border-border">
+                <AlertTriangle size={16} color="#f59e0b" />
+                <View className="flex-1">
+                  <Text className="text-base text-foreground">
+                    Des éléments ne peuvent être recyclés, ajout d&apos;une
+                    étape déchèterie
+                  </Text>
+                  <Text className="text-sm text-muted-foreground mt-1">
+                    93 rue des Caboeufs, Gennevilliers 92230
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => setShowDecheterieSheet(false)}
+                className="flex-row items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-indigo-500 active:bg-indigo-600 mt-2"
+              >
+                <Text className="text-base text-white font-bold">Accepter</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Bottom sheet réorganisation de tournée ──────────── */}
+      <Modal
+        visible={showOptimizationBanner}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowOptimizationBanner(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/40 justify-end"
+          onPress={() => setShowOptimizationBanner(false)}
+        >
+          <Pressable
+            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
+            onPress={() => {}}
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className="text-lg font-bold text-foreground">
+                Amélioration de la tournée possible
+              </Text>
+              <Pressable
+                onPress={() => setShowOptimizationBanner(false)}
+                className="p-1"
+              >
+                <X size={22} color="#6b7280" />
+              </Pressable>
+            </View>
+
+            {/* Proposition */}
+            <View className="gap-2">
+              <View className="flex-row items-center gap-3 py-3.5 px-4 rounded-xl bg-secondary border border-border">
+                <Zap size={16} color="#6366f1" />
+                <Text className="text-base text-foreground flex-1">
+                  Inverser les points P4 et P5
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={handleAcceptOptimization}
+                className="flex-row items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-indigo-500 active:bg-indigo-600 mt-2"
+              >
+                <Text className="text-base text-white font-bold">Accepter</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
