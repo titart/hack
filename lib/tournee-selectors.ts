@@ -82,17 +82,14 @@ export function getResultsMap(state: TourneeState): Record<number, "success" | "
   return results;
 }
 
-/** Vérifie si tous les points de collecte sont terminés (exclut entrepôt départ et déchargement) */
+/** Vérifie si tous les points de collecte sont en succès (exclut entrepôt départ et déchargement) */
 export function isAllPointsDone(state: TourneeState): boolean {
   return state.pointsOrder
     .filter((n) => {
       const p = state.points[n];
       return p && !p.isDechargement && p.colisOrder.length > 0;
     })
-    .every((n) => {
-      const s = state.points[n]?.status;
-      return s === "success" || s === "failed";
-    });
+    .every((n) => state.points[n]?.status === "success");
 }
 
 /**

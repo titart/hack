@@ -50,9 +50,6 @@ function ScanResultModal({
   result: {
     colisName: string;
     destination: DechargementDestination;
-    averageScore: number;
-    recyclingScore: number;
-    conditionScore: number;
   } | null;
   onClose: () => void;
 }) {
@@ -93,38 +90,10 @@ function ScanResultModal({
               {result.colisName}
             </Text>
 
-            {/* Scores */}
-            <View className="gap-2">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-sm text-muted-foreground">Score recyclage</Text>
-                <Text className="text-base font-bold text-foreground">
-                  {result.recyclingScore}/10
-                </Text>
-              </View>
-              <View className="flex-row justify-between items-center">
-                <Text className="text-sm text-muted-foreground">Score état</Text>
-                <Text className="text-base font-bold text-foreground">
-                  {result.conditionScore}/10
-                </Text>
-              </View>
-              <View className="h-px bg-border my-1" />
-              <View className="flex-row justify-between items-center">
-                <Text className="text-sm font-semibold text-foreground">
-                  Score moyen
-                </Text>
-                <Text
-                  className="text-xl font-black"
-                  style={{ color: bgColor }}
-                >
-                  {result.averageScore}/10
-                </Text>
-              </View>
-            </View>
-
             <Text className="text-xs text-center text-muted-foreground">
               {isBenne
-                ? "Score moyen < 5 → Direction la benne"
-                : "Score moyen ≥ 5 → Direction le recyclage"}
+                ? "Direction la benne"
+                : "Direction le recyclage"}
             </Text>
 
             {/* Bouton fermer */}
@@ -166,9 +135,6 @@ export default function DechargementScreen() {
   const [scanResult, setScanResult] = useState<{
     colisName: string;
     destination: DechargementDestination;
-    averageScore: number;
-    recyclingScore: number;
-    conditionScore: number;
   } | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [lastScannedData, setLastScannedData] = useState<string | null>(null);
@@ -231,21 +197,15 @@ export default function DechargementScreen() {
       scanColisDechargement(found.colisName, found.pointNumero);
       Vibration.vibrate(100);
 
-      // Calculer le résultat
-      const recycling = found.colis.analysis?.recyclingScore ?? 5;
-      const condition = found.colis.analysis?.conditionScore ?? 5;
-      const avg = Math.round(((recycling + condition) / 2) * 10) / 10;
+      // Déterminer la destination depuis la propriété target du colis
       const destination: DechargementDestination =
-        avg >= 5 ? "recyclage" : "benne";
+        found.colis.target ?? "benne";
 
       // Fermer la caméra et afficher le résultat
       setShowCamera(false);
       setScanResult({
         colisName: found.colisName,
         destination,
-        averageScore: avg,
-        recyclingScore: recycling,
-        conditionScore: condition,
       });
       setShowResult(true);
 

@@ -333,7 +333,7 @@ export default function TourneeScreen() {
         )}
       </ScrollView>
 
-      {/* ── Bottom sheet ajout étape déchèterie ───────────────── */}
+      {/* ── Top sheet ajout étape déchèterie ───────────────── */}
       <Modal
         visible={showDecheterieSheet}
         transparent
@@ -341,11 +341,11 @@ export default function TourneeScreen() {
         onRequestClose={() => setShowDecheterieSheet(false)}
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-end"
+          className="flex-1 bg-black/40 justify-start"
           onPress={() => setShowDecheterieSheet(false)}
         >
           <Pressable
-            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
+            className="bg-card rounded-b-3xl px-5 pt-10 pb-5"
             onPress={() => {}}
           >
             {/* Header */}
@@ -387,7 +387,7 @@ export default function TourneeScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── Bottom sheet réorganisation de tournée ──────────── */}
+      {/* ── Top sheet réorganisation de tournée ──────────── */}
       <Modal
         visible={showOptimizationBanner}
         transparent
@@ -395,11 +395,11 @@ export default function TourneeScreen() {
         onRequestClose={() => setShowOptimizationBanner(false)}
       >
         <Pressable
-          className="flex-1 bg-black/40 justify-end"
+          className="flex-1 bg-black/40 justify-start"
           onPress={() => setShowOptimizationBanner(false)}
         >
           <Pressable
-            className="bg-card rounded-t-3xl px-5 pb-10 pt-5"
+            className="bg-card rounded-b-3xl px-5 pt-10 pb-5"
             onPress={() => {}}
           >
             {/* Header */}

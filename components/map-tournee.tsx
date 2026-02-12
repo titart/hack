@@ -12,6 +12,7 @@ export interface ColisItem {
   poids?: string;
   statut?: "collecte" | "non_collecte";
   categorie?: string;
+  target?: "benne" | "recyclage";
 }
 
 export interface AdresseTournee {

@@ -44,6 +44,7 @@ export interface ColisState {
   poids?: string;
   statut?: "collecte" | "non_collecte";
   categorie?: string;
+  target?: "benne" | "recyclage";
 
   /** État dynamique */
   status: ColisStatus;
@@ -98,10 +99,8 @@ export interface DechargementColisState {
   colisName: string;
   /** Numéro du point d'origine */
   pointNumero: number;
-  /** Destination déterminée par le score moyen */
+  /** Destination déterminée par la propriété target du colis */
   destination: DechargementDestination;
-  /** Score moyen (conditionScore + recyclingScore) / 2 */
-  averageScore: number;
   /** Date/heure du scan */
   scannedAt: string;
 }
@@ -185,6 +184,7 @@ function buildColisState(colis: ColisItem): ColisState {
     poids: colis.poids,
     statut: colis.statut,
     categorie: colis.categorie,
+    target: colis.target,
     status: "pending",
   };
 }
@@ -447,10 +447,7 @@ export function tourneeReducer(state: TourneeState, action: TourneeAction): Tour
       // Ne pas rescanner un colis déjà scanné
       if (state.dechargement.scannedColis[key]) return state;
 
-      const recycling = srcColis.analysis?.recyclingScore ?? 5;
-      const condition = srcColis.analysis?.conditionScore ?? 5;
-      const avg = (recycling + condition) / 2;
-      const destination: DechargementDestination = avg >= 5 ? "recyclage" : "benne";
+      const destination: DechargementDestination = srcColis.target ?? "benne";
 
       return {
         ...state,
@@ -462,7 +459,6 @@ export function tourneeReducer(state: TourneeState, action: TourneeAction): Tour
               colisName: action.colisName,
               pointNumero: action.pointNumero,
               destination,
-              averageScore: Math.round(avg * 10) / 10,
               scannedAt: new Date().toISOString(),
             },
           },

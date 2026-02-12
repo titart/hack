@@ -164,7 +164,7 @@ export default function TourneeDetailScreen() {
             ],
           })
           .catch((err) => console.warn("Delivery API error (2nd call):", err));
-      }, 5000);
+      }, 30000);
     }
   };
 
