@@ -1,78 +1,132 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useReducer, useCallback, type ReactNode, type Dispatch } from "react";
 import type { ObjectAnalysis } from "@/lib/gemini";
+import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import {
+  type TourneeState,
+  type TourneeAction,
+  type RefusalReason,
+  tourneeReducer,
+  initTourneeState,
+  REFUSAL_REASONS,
+} from "@/types/tournee-store";
 
-type CourseResult = "success" | "fail";
+// Re-export pour les consommateurs existants
+export { REFUSAL_REASONS };
+export type { RefusalReason };
 
-export const REFUSAL_REASONS = [
-  "Appareil non au domicile",
-  "Appareil non DEEE",
-  "Appareil non intègre",
-  "Collecte >5e étage sans ascenseur",
-  "Client non présent / ne répond pas",
-] as const;
-
-export type RefusalReason = (typeof REFUSAL_REASONS)[number];
+// ---------------------------------------------------------------------------
+// Context type
+// ---------------------------------------------------------------------------
 
 interface TourneeContextType {
-  results: Record<number, CourseResult>;
-  photos: Record<number, string>;
-  /** Photos par colis, clé = nom du colis (ex. "Colis A-001") */
-  colisPhotos: Record<string, string>;
-  /** Résultats d'analyse IA par colis */
-  colisAnalysis: Record<string, ObjectAnalysis>;
-  /** Raisons de non-collecte par colis */
-  colisRefusals: Record<string, RefusalReason>;
-  setResult: (numero: number, result: CourseResult) => void;
-  setPhoto: (numero: number, uri: string) => void;
-  setColisPhoto: (colisName: string, uri: string) => void;
-  setColisAnalysis: (colisName: string, analysis: ObjectAnalysis) => void;
-  setColisRefusal: (colisName: string, reason: RefusalReason) => void;
+  /** État complet de la tournée */
+  state: TourneeState;
+  /** Dispatch brut pour les actions */
+  dispatch: Dispatch<TourneeAction>;
+
+  // --- Helpers pratiques (wrappent dispatch) ---
+
+  startTournee: () => void;
+  startPoint: (numero: number) => void;
+  completePoint: (numero: number, result: "success" | "failed") => void;
+  setPointPhoto: (numero: number, uri: string) => void;
+  collectColis: (numero: number, colisName: string, photo: string, analysis?: ObjectAnalysis) => void;
+  refuseColis: (numero: number, colisName: string, reason: RefusalReason) => void;
+  setColisAnalysis: (numero: number, colisName: string, analysis: ObjectAnalysis) => void;
+  swapPoints: (numeroA: number, numeroB: number) => void;
+  completeTournee: () => void;
   reset: () => void;
 }
 
 const TourneeContext = createContext<TourneeContextType | null>(null);
 
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
 export function TourneeProvider({ children }: { children: ReactNode }) {
-  const [results, setResults] = useState<Record<number, CourseResult>>({});
-  const [photos, setPhotos] = useState<Record<number, string>>({});
-  const [colisPhotos, setColisPhotosState] = useState<Record<string, string>>({});
-  const [colisAnalysis, setColisAnalysisState] = useState<Record<string, ObjectAnalysis>>({});
-  const [colisRefusals, setColisRefusalsState] = useState<Record<string, RefusalReason>>({});
+  const [state, dispatch] = useReducer(
+    tourneeReducer,
+    ADRESSES_TOURNEE,
+    initTourneeState,
+  );
 
-  const setResult = useCallback((numero: number, result: CourseResult) => {
-    setResults((prev) => ({ ...prev, [numero]: result }));
+  // --- Helpers stables wrappant dispatch ---
+
+  const startTournee = useCallback(() => {
+    dispatch({ type: "START_TOURNEE" });
   }, []);
 
-  const setPhoto = useCallback((numero: number, uri: string) => {
-    setPhotos((prev) => ({ ...prev, [numero]: uri }));
+  const startPoint = useCallback((numero: number) => {
+    dispatch({ type: "START_POINT", numero });
   }, []);
 
-  const setColisPhoto = useCallback((colisName: string, uri: string) => {
-    setColisPhotosState((prev) => ({ ...prev, [colisName]: uri }));
+  const completePoint = useCallback((numero: number, result: "success" | "failed") => {
+    dispatch({ type: "COMPLETE_POINT", numero, result });
   }, []);
 
-  const setColisAnalysis = useCallback((colisName: string, analysis: ObjectAnalysis) => {
-    setColisAnalysisState((prev) => ({ ...prev, [colisName]: analysis }));
+  const setPointPhoto = useCallback((numero: number, uri: string) => {
+    dispatch({ type: "SET_POINT_PHOTO", numero, uri });
   }, []);
 
-  const setColisRefusal = useCallback((colisName: string, reason: RefusalReason) => {
-    setColisRefusalsState((prev) => ({ ...prev, [colisName]: reason }));
+  const collectColis = useCallback(
+    (numero: number, colisName: string, photo: string, analysis?: ObjectAnalysis) => {
+      dispatch({ type: "COLLECT_COLIS", numero, colisName, photo, analysis });
+    },
+    [],
+  );
+
+  const refuseColis = useCallback(
+    (numero: number, colisName: string, reason: RefusalReason) => {
+      dispatch({ type: "REFUSE_COLIS", numero, colisName, reason });
+    },
+    [],
+  );
+
+  const setColisAnalysis = useCallback(
+    (numero: number, colisName: string, analysis: ObjectAnalysis) => {
+      dispatch({ type: "SET_COLIS_ANALYSIS", numero, colisName, analysis });
+    },
+    [],
+  );
+
+  const swapPoints = useCallback((numeroA: number, numeroB: number) => {
+    dispatch({ type: "SWAP_POINTS", numeroA, numeroB });
+  }, []);
+
+  const completeTournee = useCallback(() => {
+    dispatch({ type: "COMPLETE_TOURNEE" });
   }, []);
 
   const reset = useCallback(() => {
-    setResults({});
-    setPhotos({});
-    setColisPhotosState({});
-    setColisAnalysisState({});
-    setColisRefusalsState({});
+    dispatch({ type: "RESET", adresses: ADRESSES_TOURNEE });
   }, []);
 
   return (
-    <TourneeContext.Provider value={{ results, photos, colisPhotos, colisAnalysis, colisRefusals, setResult, setPhoto, setColisPhoto, setColisAnalysis, setColisRefusal, reset }}>
+    <TourneeContext.Provider
+      value={{
+        state,
+        dispatch,
+        startTournee,
+        startPoint,
+        completePoint,
+        setPointPhoto,
+        collectColis,
+        refuseColis,
+        setColisAnalysis,
+        swapPoints,
+        completeTournee,
+        reset,
+      }}
+    >
       {children}
     </TourneeContext.Provider>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
 export function useTournee() {
   const context = useContext(TourneeContext);

@@ -8,8 +8,9 @@ import { useState, useCallback } from "react";
 import { Text } from "@/components/ui/text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
-import { useTournee, REFUSAL_REASONS, type RefusalReason } from "@/contexts/tournee-context";
-import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { useTournee } from "@/contexts/tournee-context";
+import { REFUSAL_REASONS, type RefusalReason } from "@/types/tournee-store";
+import { getPoint, getColis } from "@/lib/tournee-selectors";
 import { analyzeObject, type ObjectAnalysis } from "@/lib/gemini";
 
 // ---------------------------------------------------------------------------
@@ -75,18 +76,19 @@ export default function ColisPhotoScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
-  const { colisPhotos, colisAnalysis, colisRefusals, setColisPhoto, setColisAnalysis, setColisRefusal } = useTournee();
+  const { state, collectColis, refuseColis, setColisAnalysis } = useTournee();
 
   const decodedName = decodeURIComponent(colisName ?? "");
 
-  // Trouver le colis dans les données
+  // Trouver le colis dans le store
   const numInt = Number(numero);
-  const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
-  const colis = adresse?.colis.find((c) => c.name === decodedName);
+  const point = getPoint(state, numInt);
+  const colisState = getColis(state, numInt, decodedName);
+  const colis = colisState; // alias pour la compat
 
-  const existingPhoto = colisPhotos[decodedName];
-  const existingAnalysis = colisAnalysis[decodedName] ?? null;
-  const existingRefusal = colisRefusals[decodedName] ?? null;
+  const existingPhoto = colisState?.photo ?? null;
+  const existingAnalysis = colisState?.analysis ?? null;
+  const existingRefusal = colisState?.status === "refused" ? (colisState.refusalReason ?? null) : null;
   const [photos, setPhotos] = useState<string[]>(
     existingPhoto ? [existingPhoto] : []
   );
@@ -105,13 +107,13 @@ export default function ColisPhotoScreen() {
     try {
       const data = await analyzeObject(uri);
       setAnalysis(data);
-      setColisAnalysis(decodedName, data);
+      setColisAnalysis(numInt, decodedName, data);
     } catch (err: any) {
       console.error("Erreur analyse IA:", err);
     } finally {
       setLoading(false);
     }
-  }, [decodedName, setColisAnalysis]);
+  }, [numInt, decodedName, setColisAnalysis]);
 
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -142,7 +144,7 @@ export default function ColisPhotoScreen() {
 
   function handleCollect() {
     if (selectedPhoto) {
-      setColisPhoto(decodedName, selectedPhoto);
+      collectColis(numInt, decodedName, selectedPhoto, analysis ?? undefined);
     }
     router.back();
   }
@@ -153,7 +155,7 @@ export default function ColisPhotoScreen() {
 
   function handleSelectReason(reason: RefusalReason) {
     setRefusalReason(reason);
-    setColisRefusal(decodedName, reason);
+    refuseColis(numInt, decodedName, reason);
     setShowReasons(false);
   }
 

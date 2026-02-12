@@ -1,13 +1,13 @@
 import { useRouter } from "expo-router";
 import { ChevronRight, Navigation, Package, Truck } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MapTournee from "@/components/map-tournee";
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
-import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { getOrderedPoints, getResultsMap } from "@/lib/tournee-selectors";
 
 const TOURNEE_INFO = {
   name: "T01",
@@ -29,27 +29,32 @@ function extractPostalCode(adresse: string): string {
 
 export default function TourneeScreen() {
   const router = useRouter();
-  const { results } = useTournee();
-  const [orderedAdresses, setOrderedAdresses] = useState(() => [...ADRESSES_TOURNEE]);
-  const [activeNumero, setActiveNumero] = useState(ADRESSES_TOURNEE[0]?.numero);
+  const { state, swapPoints } = useTournee();
+
+  const orderedPoints = useMemo(() => getOrderedPoints(state), [state]);
+  const results = useMemo(() => getResultsMap(state), [state]);
+
+  // Convertir PointLivraisonState[] vers le format attendu par MapTournee
+  const orderedAdresses = useMemo(
+    () =>
+      orderedPoints.map((p) => ({
+        ...p,
+        colis: p.colisOrder.map((name) => p.colis[name]),
+      })),
+    [orderedPoints],
+  );
+
+  const [activeNumero, setActiveNumero] = useState(state.pointsOrder[0]);
 
   const handleSwap8and9 = useCallback(() => {
-    setOrderedAdresses((prev) => {
-      const next = [...prev];
-      const idx8 = next.findIndex((a) => a.numero === 8);
-      const idx9 = next.findIndex((a) => a.numero === 9);
-      if (idx8 !== -1 && idx9 !== -1) {
-        [next[idx8], next[idx9]] = [next[idx9], next[idx8]];
-      }
-      return next;
-    });
-  }, []);
+    swapPoints(8, 9);
+  }, [swapPoints]);
 
-  const totalColis = orderedAdresses.reduce(
-    (sum, a) => sum + a.colis.length,
+  const totalColis = orderedPoints.reduce(
+    (sum, p) => sum + p.colisOrder.length,
     0,
   );
-  const nbPoints = orderedAdresses.length;
+  const nbPoints = orderedPoints.length;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>

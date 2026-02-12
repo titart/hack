@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useTournee } from "@/contexts/tournee-context";
 
 const CHECKLIST_ITEMS = [
   { id: "etiquettes", label: "J'ai récupéré mes étiquettes" },
@@ -17,6 +18,7 @@ const CHECKLIST_ITEMS = [
 ] as const;
 
 export default function HomeScreen() {
+  const { startTournee } = useTournee();
   const [checked, setChecked] = useState<Record<string, boolean>>({
     etiquettes: false,
     bons: false,
@@ -87,6 +89,7 @@ export default function HomeScreen() {
             size="lg"
             className="w-full"
             disabled={!allChecked}
+            onPress={startTournee}
           >
             <Truck size={20} color="white" />
             <Text>Démarre ma tournée</Text>

@@ -9,25 +9,26 @@ import {
   PlusCircle,
   User,
 } from "lucide-react-native";
+import { useMemo } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
 import { useTournee } from "@/contexts/tournee-context";
-import { ADRESSES_TOURNEE } from "@/data/adresses-tournee";
+import { getPoint } from "@/lib/tournee-selectors";
 
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === "dark" ? THEME.dark : THEME.light;
-  const { colisPhotos, colisRefusals } = useTournee();
+  const { state, startPoint } = useTournee();
 
   const numInt = Number(numero);
-  const adresse = ADRESSES_TOURNEE.find((a) => a.numero === numInt);
+  const point = useMemo(() => getPoint(state, numInt), [state, numInt]);
 
-  if (!adresse) {
+  if (!point) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <Text>Adresse introuvable</Text>
@@ -35,22 +36,31 @@ export default function TourneeDetailScreen() {
     );
   }
 
-  const headerTitle = `Point ${adresse.numero} : ${adresse.creneauHoraire ?? ""} - ${adresse.ville ?? ""}`;
+  const headerTitle = `Point ${point.numero} : ${point.creneauHoraire ?? ""} - ${point.ville ?? ""}`;
 
-  function openMaps() {
-    const { latitude, longitude, adresse: addr } = adresse!;
+  const openMaps = () => {
+    const { latitude, longitude, adresse: addr } = point;
     const url = Platform.select({
       ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(addr)}`,
       default: `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
     });
     Linking.openURL(url);
-  }
+  };
 
-  function callPhone() {
-    if (adresse?.phone) {
-      Linking.openURL(`tel:${adresse.phone.replace(/\s/g, "")}`);
+  const callPhone = () => {
+    if (point.phone) {
+      Linking.openURL(`tel:${point.phone.replace(/\s/g, "")}`);
     }
-  }
+  };
+
+  const handleStart = () => {
+    if (point.status === "pending") {
+      startPoint(numInt);
+    }
+  };
+
+  // Colis ordonnés
+  const colisList = point.colisOrder.map((name) => point.colis[name]);
 
   return (
     <View className="flex-1 bg-background">
@@ -91,7 +101,7 @@ export default function TourneeDetailScreen() {
           <View className="flex-row items-center gap-3">
             <User size={18} color="#6b7280" />
             <Text className="text-base text-foreground">
-              {adresse.clientName ?? "Client"}
+              {point.clientName ?? "Client"}
             </Text>
           </View>
 
@@ -99,29 +109,29 @@ export default function TourneeDetailScreen() {
           <Pressable onPress={openMaps} className="flex-row items-start gap-3">
             <MapPin size={18} color="#6b7280" />
             <Text className="text-base text-foreground underline flex-1">
-              {adresse.adresse}
+              {point.adresse}
             </Text>
           </Pressable>
 
           {/* Téléphone */}
-          {adresse.phone && (
+          {point.phone && (
             <Pressable
               onPress={callPhone}
               className="flex-row items-center gap-3"
             >
               <Phone size={18} color="#6b7280" />
-              <Text className="text-base text-foreground">{adresse.phone}</Text>
+              <Text className="text-base text-foreground">{point.phone}</Text>
             </Pressable>
           )}
 
           {/* Notes */}
-          {adresse.notes && (
+          {point.notes && (
             <View className="flex-row items-start gap-3">
               <View className="pt-0.5">
                 <Info size={18} color="#6b7280" />
               </View>
               <Text className="text-sm text-muted-foreground flex-1 leading-5">
-                {adresse.notes}
+                {point.notes}
               </Text>
             </View>
           )}
@@ -132,13 +142,13 @@ export default function TourneeDetailScreen() {
           {/* Titre mission */}
           <View className="flex-row items-baseline gap-2 flex-wrap">
             <Text className="text-lg font-bold text-foreground">
-              Mission : {adresse.missionType ?? "Collecte"}
+              Mission : {point.missionType ?? "Collecte"}
             </Text>
-            {(adresse.missionRef || adresse.missionPartenaire) && (
+            {(point.missionRef || point.missionPartenaire) && (
               <Text className="text-sm text-muted-foreground">
-                ({adresse.missionRef}
-                {adresse.missionPartenaire
-                  ? ` - ${adresse.missionPartenaire}`
+                ({point.missionRef}
+                {point.missionPartenaire
+                  ? ` - ${point.missionPartenaire}`
                   : ""}
                 )
               </Text>
@@ -147,9 +157,9 @@ export default function TourneeDetailScreen() {
 
           {/* Liste des appareils */}
           <View className="gap-3">
-            {adresse.colis.map((colis) => {
-              const isCollected = colisPhotos[colis.name] != null;
-              const refusalReason = colisRefusals[colis.name] ?? null;
+            {colisList.map((colis) => {
+              const isCollected = colis.status === "collected";
+              const refusalReason = colis.status === "refused" ? (colis.refusalReason ?? null) : null;
               const subtitle = [colis.marque, colis.modele, colis.poids]
                 .filter(Boolean)
                 .join(", ");
@@ -258,8 +268,27 @@ export default function TourneeDetailScreen() {
           elevation: 4,
         }}
       >
-        <Pressable className="border border-border rounded-full py-3.5 items-center">
-          <Text className="text-base font-medium text-foreground">Démarrer</Text>
+        <Pressable
+          onPress={handleStart}
+          className={`rounded-full py-3.5 items-center ${
+            point.status === "pending"
+              ? "bg-primary"
+              : "border border-border"
+          }`}
+        >
+          <Text
+            className={`text-base font-medium ${
+              point.status === "pending" ? "text-white" : "text-foreground"
+            }`}
+          >
+            {point.status === "pending"
+              ? "Démarrer"
+              : point.status === "started"
+                ? "En cours..."
+                : point.status === "success"
+                  ? "Terminé"
+                  : "Échoué"}
+          </Text>
         </Pressable>
       </View>
     </View>
