@@ -70,6 +70,7 @@ export interface PointLivraisonState {
   missionType?: string;
   missionRef?: string;
   missionPartenaire?: string;
+  isDechargement?: boolean;
 
   /** État dynamique */
   status: PointStatus;
@@ -209,6 +210,7 @@ function buildPointState(adresse: AdresseTournee): PointLivraisonState {
     missionType: adresse.missionType,
     missionRef: adresse.missionRef,
     missionPartenaire: adresse.missionPartenaire,
+    isDechargement: adresse.isDechargement,
     status: "pending",
     colis: colisRecord,
     colisOrder,
@@ -218,6 +220,9 @@ function buildPointState(adresse: AdresseTournee): PointLivraisonState {
 export function initTourneeState(adresses: AdresseTournee[]): TourneeState {
   const points: Record<number, PointLivraisonState> = {};
   const pointsOrder: number[] = [];
+
+  // Chercher l'adresse flaguée comme déchargement
+  const dechargementAdresse = adresses.find((a) => a.isDechargement);
 
   for (const a of adresses) {
     points[a.numero] = buildPointState(a);
@@ -231,10 +236,10 @@ export function initTourneeState(adresses: AdresseTournee[]): TourneeState {
     pointsOrder,
     dechargement: {
       status: "locked",
-      adresse: "12 rue des crabes, Lyon 69000",
-      ville: "Villeurbanne",
-      creneauHoraire: "16h00",
-      notes: "Quai n°3 - Code 1822",
+      adresse: dechargementAdresse?.adresse ?? "12 rue des crabes, Lyon 69000",
+      ville: dechargementAdresse?.ville ?? "Villeurbanne",
+      creneauHoraire: dechargementAdresse?.creneauHoraire ?? "16h00",
+      notes: dechargementAdresse?.notes ?? "Quai n°3 - Code 1822",
       scannedColis: {},
     },
   };

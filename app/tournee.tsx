@@ -131,6 +131,65 @@ export default function TourneeScreen() {
       <ScrollView className="flex-1" contentContainerClassName="p-4 gap-3">
         {orderedAdresses.map((item) => {
           const postalCode = extractPostalCode(item.adresse);
+
+          // Point flagué déchargement : apparence et navigation spéciales
+          if (item.isDechargement) {
+            const isLocked = dechargement.status === "locked";
+            const isCompleted = dechargement.status === "completed";
+            const dechBg = isLocked
+              ? "bg-secondary opacity-50"
+              : isCompleted
+                ? "bg-green-50 border border-green-200"
+                : "bg-orange-50 border border-orange-200";
+            const iconBg = isLocked
+              ? "bg-muted-foreground"
+              : isCompleted
+                ? "bg-green-500"
+                : "bg-orange-500";
+
+            return (
+              <Pressable
+                key={item.numero}
+                disabled={isLocked}
+                onPress={() => {
+                  router.push("/dechargement");
+                  setActiveNumero(item.numero);
+                }}
+                className={`flex-row items-center rounded-xl px-4 py-4 ${dechBg}`}
+              >
+                {/* Warehouse icon */}
+                <View className={`h-10 w-10 items-center justify-center rounded-lg ${iconBg} mr-3`}>
+                  <Warehouse size={18} color="#ffffff" />
+                </View>
+
+                {/* Content */}
+                <View className="flex-1">
+                  <View className="flex-row items-baseline gap-2">
+                    <Text className="font-bold text-base">
+                      P{item.numero} - {item.creneauHoraire}
+                    </Text>
+                    <Text className="text-muted-foreground text-sm">
+                      {item.ville}
+                      {postalCode ? `, ${postalCode}` : ""}
+                    </Text>
+                  </View>
+                  <Text className="text-muted-foreground text-sm mt-0.5">
+                    Déchargement
+                    {!isLocked && collectedColis.length > 0
+                      ? ` · ${collectedColis.length} colis collectés`
+                      : ""}
+                    {scannedCount > 0
+                      ? ` · ${scannedCount}/${collectedColis.length} scannés`
+                      : ""}
+                  </Text>
+                </View>
+
+                {/* Chevron */}
+                <ChevronRight size={20} color="#9ca3af" />
+              </Pressable>
+            );
+          }
+
           const statusBg =
             item.status === "started"
               ? "bg-green-100"

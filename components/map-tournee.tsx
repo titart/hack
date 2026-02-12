@@ -28,6 +28,7 @@ export interface AdresseTournee {
   missionType?: string;
   missionRef?: string;
   missionPartenaire?: string;
+  isDechargement?: boolean;
 }
 
 interface MapTourneeProps {
