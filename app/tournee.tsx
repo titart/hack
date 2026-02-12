@@ -314,9 +314,7 @@ export default function TourneeScreen() {
             {/* Content */}
             <View className="flex-1">
               <View className="flex-row items-baseline gap-2">
-                <Text className="font-bold text-base">
-                  Dechetterie - {dechargement.creneauHoraire}
-                </Text>
+                <Text className="font-bold text-base">Dechetterie</Text>
                 <Text className="text-muted-foreground text-sm">
                   {dechargement.ville}
                 </Text>
