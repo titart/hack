@@ -211,7 +211,7 @@ function buildPointState(adresse: AdresseTournee): PointLivraisonState {
     missionRef: adresse.missionRef,
     missionPartenaire: adresse.missionPartenaire,
     isDechargement: adresse.isDechargement,
-    status: "pending",
+    status: adresse.initialStatus ?? "pending",
     colis: colisRecord,
     colisOrder,
   };

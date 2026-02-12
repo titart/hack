@@ -14,6 +14,7 @@ export const ADRESSES_TOURNEE: AdresseTournee[] = [
     missionType: "Départ",
     missionRef: "ENTREPOT",
     missionPartenaire: "Ecosystem",
+    initialStatus: "success",
     colis: [],
   },
   {

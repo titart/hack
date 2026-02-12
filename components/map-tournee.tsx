@@ -29,6 +29,7 @@ export interface AdresseTournee {
   missionRef?: string;
   missionPartenaire?: string;
   isDechargement?: boolean;
+  initialStatus?: "pending" | "started" | "success" | "failed";
 }
 
 interface MapTourneeProps {
