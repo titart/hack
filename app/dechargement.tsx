@@ -19,6 +19,7 @@ import {
   Vibration,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Speech from "expo-speech";
 
 import { Text } from "@/components/ui/text";
 import { useTournee } from "@/contexts/tournee-context";
@@ -247,6 +248,11 @@ export default function DechargementScreen() {
         conditionScore: condition,
       });
       setShowResult(true);
+
+      // Annoncer vocalement la destination
+      Speech.speak(destination === "benne" ? "À la benne" : "Recyclage", {
+        language: "fr-FR",
+      });
     },
     [state, lastScannedData, scanColisDechargement]
   );
