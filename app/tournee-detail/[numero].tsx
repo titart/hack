@@ -34,6 +34,8 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { THEME } from "@/lib/theme";
 import { getPoint } from "@/lib/tournee-selectors";
+import { sendSms } from "@/tools/esendex";
+import axios from "axios";
 
 export default function TourneeDetailScreen() {
   const { numero } = useLocalSearchParams<{ numero: string }>();
@@ -54,6 +56,13 @@ export default function TourneeDetailScreen() {
 
   const numInt = Number(numero);
   const point = useMemo(() => getPoint(state, numInt), [state, numInt]);
+  const prevPoint = useMemo(() => {
+    const idx = state.pointsOrder.indexOf(numInt);
+    if (idx > 0) {
+      return state.points[state.pointsOrder[idx - 1]];
+    }
+    return null;
+  }, [state, numInt]);
 
   if (!point) {
     return (
@@ -83,6 +92,79 @@ export default function TourneeDetailScreen() {
   const handleStart = () => {
     if (point.status === "pending") {
       startPoint(numInt);
+      if (point.phone) {
+        sendSms(
+          point.phone.replace(/\s/g, ""),
+          "Votre camion de collecte est en route, vous pouvez le suivre via: https://6960d7xx-3000.uks1.devtunnels.ms",
+        ).catch((err) => console.warn("SMS error:", err));
+      }
+      axios
+        .patch("https://6960d7xx-3000.uks1.devtunnels.ms/delivery", {
+          confirmationCode: "",
+          latitude: prevPoint?.latitude ?? point.latitude,
+          longitude: prevPoint?.longitude ?? point.longitude,
+          steps: [
+            {
+              id: "collect_validated",
+              label: "Collecte validée",
+              validated: true,
+              timestamp: "10/02",
+            },
+            {
+              id: "slot_validated",
+              label: "Créneau validé",
+              validated: true,
+              timestamp: "11/02",
+            },
+            {
+              id: "truck_en_route",
+              label: "Le camion est en route",
+              timestamp: "16h45",
+              validated: true,
+            },
+            {
+              id: "truck_is_here",
+              label: "Le camion est là",
+              validated: false,
+            },
+          ],
+        })
+        .catch((err) => console.warn("Delivery API error:", err));
+
+      setTimeout(() => {
+        axios
+          .patch("https://6960d7xx-3000.uks1.devtunnels.ms/delivery", {
+            estimatedArrivalMinutes: 0,
+            confirmationCode: point.confirmationCode ?? "",
+            latitude: point.latitude,
+            longitude: point.longitude,
+            steps: [
+              {
+                id: "collect_validated",
+                label: "Collecte validée",
+                validated: true,
+                timestamp: "10/02",
+              },
+              {
+                id: "slot_validated",
+                label: "Créneau validé",
+                validated: true,
+                timestamp: "11/02",
+              },
+              {
+                id: "truck_en_route",
+                label: "Le camion est en route",
+                validated: true,
+              },
+              {
+                id: "truck_is_here",
+                label: "Le camion est là",
+                validated: true,
+              },
+            ],
+          })
+          .catch((err) => console.warn("Delivery API error (2nd call):", err));
+      }, 5000);
     }
   };
 
@@ -346,7 +428,8 @@ export default function TourneeDetailScreen() {
             {/* Message si colis pas tous traités */}
             {!allColisDone && (
               <Text className="text-xs text-center text-muted-foreground">
-                Tous les colis doivent être collectés ou refusés avant de terminer
+                Tous les colis doivent être collectés ou refusés avant de
+                terminer
               </Text>
             )}
             <View className="flex-row gap-3">

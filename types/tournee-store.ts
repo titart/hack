@@ -71,6 +71,7 @@ export interface PointLivraisonState {
   missionRef?: string;
   missionPartenaire?: string;
   isDechargement?: boolean;
+  confirmationCode?: string;
 
   /** État dynamique */
   status: PointStatus;
@@ -211,6 +212,7 @@ function buildPointState(adresse: AdresseTournee): PointLivraisonState {
     missionRef: adresse.missionRef,
     missionPartenaire: adresse.missionPartenaire,
     isDechargement: adresse.isDechargement,
+    confirmationCode: adresse.confirmationCode,
     status: adresse.initialStatus ?? "pending",
     colis: colisRecord,
     colisOrder,
